@@ -378,6 +378,8 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                     raw_list = NA, raw_data_cols = NA, raw_data_col_names = NA, council_centroid = NA, hotspot_15_centroid = NA,
                     hotspot_17_centroid = NA, label_transparency = 0.5){
   
+  oldw <- getOption("warn")
+  options(warn = -1)
   #making highlight colors
   cd_bright = brighten_color(cd_colors, brightness_perc)
   hs_15_bright = brighten_color(hotspot_15_colors, brightness_perc)
@@ -543,7 +545,7 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
     addLegend(colors = hotspot_15_colors, labels = '2015 Hotspots', 'bottomleft', opacity = 1) %>%
     addLegend(colors = cd_colors, labels = 'Council Districts', 'bottomleft', opacity = 1)
   
-  
+  options(warn = oldw)
   return(ret_map)
   
 }

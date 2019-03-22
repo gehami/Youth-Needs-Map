@@ -61,7 +61,11 @@ shinyUI(
                     ")),
   
   # Application title
-  titlePanel("Youth Risk Map"),
+  titlePanel(
+    list(h1("Violence Risk Factors Map"),
+    h5("An editable map of the risk factors for youth and gang violence."),
+    h5("Toggle the metrics below to identify neighborhoods with specific risk factors."))
+    ),
   
   ###### Sliders ##########
   bsCollapse(id = 'Sliders',
@@ -278,17 +282,26 @@ shinyUI(
   # Sidebar with a slider input for number of bins 
   sidebarLayout(
     sidebarPanel(
-      h2(textOutput('metric_focus')),
-      tabsetPanel(
-        id = 'data_tables',
-        tabPanel('2013', DT::dataTableOutput('dt_2013')),
-        tabPanel('2014', DT::dataTableOutput('dt_2014')),
-        tabPanel('2015', DT::dataTableOutput('dt_2015')),
-        tabPanel('2016', DT::dataTableOutput('dt_2016')),
-        tabPanel('2017', DT::dataTableOutput('dt_2017')),
-        tabPanel('2018', DT::dataTableOutput('dt_2018')),
-        selected = '2018'
-      )
+    #   h2(textOutput('metric_focus')),
+    #   tabsetPanel(
+    #     id = 'data_tables',
+    #     tabPanel('2013', DT::dataTableOutput('dt_2013')),
+    #     tabPanel('2014', DT::dataTableOutput('dt_2014')),
+    #     tabPanel('2015', DT::dataTableOutput('dt_2015')),
+    #     tabPanel('2016', DT::dataTableOutput('dt_2016')),
+    #     tabPanel('2017', DT::dataTableOutput('dt_2017')),
+    #     tabPanel('2018', DT::dataTableOutput('dt_2018')),
+    #     selected = '2018'
+    #   )
+      h3('Instructions:'),
+      h6('On this map you can alter the metrics to focus more or less on certain data.'),
+      h6('Click above to edit the map metrics.'),
+      h6('It will drop down a set of sliders which you can toggle to weight certain factors more or less.'),
+      h6('Click "Update and Show Map" to show the updated map.'),
+      h6('To focus on a single metric, turn all other metrics to 0.'),
+      h6('To reset the metrics to all be equal, click "Reset Metrics."'),
+      # h6('To watch a tutorial, click here'),
+      h6("A product of San Jose Parks, Recreation, and Neighborhood Serives, with help from the City of San Jose.")
     ),
     
     # Show a plot of the generated distribution
