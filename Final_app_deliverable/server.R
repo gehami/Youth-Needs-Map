@@ -213,29 +213,29 @@ get_pred_pals = function(pred_dat, column_names, quantile_bins = NA, pallete_col
   return(pals)
 }
 
-
 #labels
-get_labels = function(big_list, column_names, quantile_bins = NA, raw_list = NA, raw_data_cols = NA, raw_data_col_names = NA){
+get_labels = function(big_list, column_names, quantile_bins = NA, raw_list = NA, raw_data_cols = NA, raw_data_col_names = NA){#, weights = NA){
   labels = list()
   for(n in seq_along((big_list))){
     test = big_list[[n]][[2]]@data
     if(!is.na(quantile_bins)){
-      title = sprintf('<b>%s</b><br/><em><b>Need Rating - %s%%ile</b></em><br/><br/><b>Metrics:</b>', test$neib_name, get_quantile(test[,column_names[1]], quantile_bins))
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/><b>Metrics:</b>', test$neib_name, get_quantile(test[,column_names[1]], quantile_bins))
     }else{    
-      title = sprintf('<b>%s</b><br/><em><b>Need Rating - %.2f%%</b></em><br/><br/><b>Metrics:</b>', test$neib_name, test[,column_names[1]]*100)
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/><b>Metrics:</b>', test$neib_name, test[,column_names[1]]*100)
     }
-    if(length(column_names) > 1){
-      label = paste(sep = '<br/>', title, sprintf('%s: %.f%%ile', gsub('_', ' ', column_names[2]), test[,paste0(column_names[2], '_percentile')]*100))
-    }
-    if(length(column_names) > 2){
-      for(cols in column_names[3:length(column_names)]){
-        label = paste(sep = '<br/>', label, sprintf('%s: %.f%%ile', gsub('_', ' ', cols), test[,paste0(cols, '_percentile')]*100))
-      }
+    # if(any(!is.na(weights)) & as.numeric(weights[which(weights[,1] == column_names[2]),2]) == 0){}else{
+    label = paste(sep = '<br/>', title, sprintf('%s: %.f%%ile', gsub('_', ' ', column_names[2]), test[,paste0(column_names[2], '_percentile')]*100))
+    # }
+    for(cols in column_names[3:length(column_names)]){
+      # if(any(!is.na(weights)) & as.numeric(weights[which(weights[,1] == cols),2]) == 0){}else{
+      label = paste(sep = '<br/>', label, sprintf('%s: %.f%%ile', gsub('_', ' ', cols), test[,paste0(cols, '_percentile')]*100))
+      # }
     }
     if(!is.na(raw_list) & !is.na(raw_data_cols)){
       if(length(raw_data_cols) == length(raw_data_col_names) | is.na(raw_data_col_names[1])){
         raw_test = raw_list[[n]][[2]]@data
         label = paste0(label, '<br/>_______________<br/><b>Raw Metrics:</b>')
+        
         label = paste0(label, '<br/>', sprintf('%s: %s', raw_data_col_names[1], raw_test[,raw_data_cols[1]]))
         for(i in seq_along(raw_data_cols)[-1]){
           label = paste(sep = '<br/>', label, sprintf('%s: %s%%', raw_data_col_names[i], raw_test[,raw_data_cols[i]]))
@@ -257,12 +257,12 @@ get_pred_labels = function(pred_dat, column_names, quantile_bins = NA){
   if(is.numeric(column_names[1])){column_names = colnames(pred_dat@data)[column_names]}
   if(!is.na(quantile_bins)){
     for(n in seq_along(column_names)){
-      title = sprintf('<b>%s</b><br/><em><b>Need Rating - %s%%ile</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, get_quantile(pred_dat@data[,column_names[n]], quantile_bins))
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, get_quantile(pred_dat@data[,column_names[n]], quantile_bins))
       labels[[n]] = title
     }
   }else{
     for(n in seq_along(column_names)){
-      title = sprintf('<b>%s</b><br/><em><b>Need Rating - %.2f%%</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, pred_dat@data[,column_names[n]]*100)
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, pred_dat@data[,column_names[n]]*100)
       labels[[n]] = title
     }
   }
@@ -283,6 +283,7 @@ brighten_color = function(color, brightness_perc = 0.05){
   return(bright_hex)
 }
 
+
 ######### FUNCTION: given hotspots, makes labels for hotspots ###########
 #testing for function
 # hotspot = hotspot_15
@@ -295,17 +296,13 @@ brighten_color = function(color, brightness_perc = 0.05){
 get_hotspot_labels = function(hotspot, big_list_dat, column_names, quantile_bins = NA, raw_data_cols = NA, raw_data_col_names = NA){
   test = hotspot@data
   if(!is.na(quantile_bins)){
-    title = sprintf('<b>Hotspot: %s</b><br/><em><b>Need Rating - %s%%ile</b></em><br/><br/><b>Metrics:</b>', test$hotspot_name, get_quantile(test[,column_names[1]], quantile_bins, compare_vec = big_list_dat[,column_names[1]]))
+    title = sprintf('<b>Hotspot: %s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/><b>Metrics:</b>', test$hotspot_name, get_quantile(test[,column_names[1]], quantile_bins, compare_vec = big_list_dat[,column_names[1]]))
   }else{
-    title = sprintf('<b>Hotspot: %s</b><br/><em><b>Need Rating - %.2f%%</b></em><br/><br/><b>Metrics:</b>', test$hotspot_name, round(test[,column_names[1]]*100,2))
+    title = sprintf('<b>Hotspot: %s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/><b>Metrics:</b>', test$hotspot_name, round(test[,column_names[1]]*100,2))
   }
-  if(length(column_names) > 1){
-    label = paste(sep = '<br/>', title, sprintf('%s: %.f%%ile', gsub('_', ' ', column_names[2]), round(get_percentile(test[,column_names[2]])*100,2)))
-  }
-  if(length(column_names) > 2){
-    for(cols in column_names[3:length(column_names)]){
-      label = paste(sep = '<br/>', label, sprintf('%s: %.f%%ile', gsub('_', ' ', cols), round(get_percentile(test[,cols])*100, 2)))
-    }
+  label = paste(sep = '<br/>', title, sprintf('%s: %.f%%ile', gsub('_', ' ', column_names[2]), round(get_percentile(test[,column_names[2]])*100,2)))
+  for(cols in column_names[3:length(column_names)]){
+    label = paste(sep = '<br/>', label, sprintf('%s: %.f%%ile', gsub('_', ' ', cols), round(get_percentile(test[,cols])*100, 2)))
   }
   if(!is.na(raw_data_cols)){
     if(length(raw_data_cols) == length(raw_data_col_names) | is.na(raw_data_col_names[1])){
@@ -356,7 +353,6 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
   
   oldw <- getOption("warn")
   options(warn = -1)
-  
   #making highlight colors
   cd_bright = brighten_color(cd_colors, brightness_perc)
   hs_15_bright = brighten_color(hotspot_15_colors, brightness_perc)
@@ -449,7 +445,7 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
   if(!is.na(quantile_bins)){legend_val = unique(metric_val)[order(unique(metric_val))]}else{legend_val = seq(0,1,by = 0.01)}
   
   ret_map <- initial_map %>% addLegend(pal = pallete_function[[1]], values = legend_val, opacity = 0.7, position = 'bottomright',
-                                       title = 'Need Value Decile') %>%
+                                       title = 'Overall Risk Factor Score Decile') %>%
     addPolygons(data = hotspot_17, color = hotspot_17_colors, opacity = 1,
                 fillOpacity = 0,
                 weight = 4, group = '2017 MGPTF hotspots', 
@@ -532,6 +528,7 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
 
 
 
+
 ######## Pulls the Metrics ###########
 
 source('Metric Definitions.R')
@@ -546,8 +543,12 @@ gp_sub_cols = gang_presence_cols
 
 ########### Base map #########
 # install.packages('leaflet')
-library(leaflet)
-library(htmltools)
+install_and_load('leaflet')
+install_and_load('htmltools')
+install_and_load('Hmisc')
+
+# library(leaflet)
+# library(htmltools)
 
 map <- leaflet() %>% 
   # add ocean basemap
@@ -606,49 +607,49 @@ shinyServer(function(input, output, session) {
   
   #setting datatables
   {
-  output$metric_focus = renderText('Top Neighborhoods by Gang Presence Metrics')
+    output$metric_focus = renderText('Top Neighborhoods by Gang Presence Metrics')
     
-  dt_2013 = datatable(data.frame(Neighborhood = big_list[[1]][[2]]@data$neib_name,
-                                 risk_level= big_list[[1]][[2]]@data$GANG_PRESENCE, 
-                                 Risk = get_quantile(big_list[[1]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
-                                                                  ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
-                        mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
-  output$dt_2013 = DT::renderDataTable(dt_2013) 
-  
-  dt_2014 = datatable(data.frame(Neighborhood = big_list[[2]][[2]]@data$neib_name,
-                                 risk_level= big_list[[2]][[2]]@data$GANG_PRESENCE, 
-                                 Risk = get_quantile(big_list[[2]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
-                                                                  ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
-                        mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
-  output$dt_2014 = DT::renderDataTable(dt_2014)
-  
-  dt_2015 = datatable(data.frame(Neighborhood = big_list[[3]][[2]]@data$neib_name,
-                                 risk_level= big_list[[3]][[2]]@data$GANG_PRESENCE, 
-                                 Risk = get_quantile(big_list[[3]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
-                                                                  ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
-                        mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
-  output$dt_2015 = DT::renderDataTable(dt_2015)
-  
-  dt_2016 = datatable(data.frame(Neighborhood = big_list[[4]][[2]]@data$neib_name,
-                                 risk_level= big_list[[4]][[2]]@data$GANG_PRESENCE, 
-                                 Risk = get_quantile(big_list[[4]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
-                                                                  ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
-                        mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
-  output$dt_2016 = DT::renderDataTable(dt_2016)
-  
-  dt_2017 = datatable(data.frame(Neighborhood = big_list[[5]][[2]]@data$neib_name,
-                                 risk_level= big_list[[5]][[2]]@data$GANG_PRESENCE, 
-                                 Risk = get_quantile(big_list[[5]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
-                                                                  ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
-                        mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
-  output$dt_2017 = DT::renderDataTable(dt_2017)
-  
-  dt_2018 = datatable(data.frame(Neighborhood = big_list[[6]][[2]]@data$neib_name,
-                                 risk_level= big_list[[6]][[2]]@data$GANG_PRESENCE, 
-                                 Risk = get_quantile(big_list[[6]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
-                                                                  ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
-                        mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
-  output$dt_2018 = DT::renderDataTable(dt_2018)
+    dt_2013 = datatable(data.frame(Neighborhood = big_list[[1]][[2]]@data$neib_name,
+                                   risk_level= big_list[[1]][[2]]@data$GANG_PRESENCE, 
+                                   Risk = get_quantile(big_list[[1]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
+                                                       ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                          mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
+    output$dt_2013 = DT::renderDataTable(dt_2013) 
+    
+    dt_2014 = datatable(data.frame(Neighborhood = big_list[[2]][[2]]@data$neib_name,
+                                   risk_level= big_list[[2]][[2]]@data$GANG_PRESENCE, 
+                                   Risk = get_quantile(big_list[[2]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
+                                                       ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                          mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
+    output$dt_2014 = DT::renderDataTable(dt_2014)
+    
+    dt_2015 = datatable(data.frame(Neighborhood = big_list[[3]][[2]]@data$neib_name,
+                                   risk_level= big_list[[3]][[2]]@data$GANG_PRESENCE, 
+                                   Risk = get_quantile(big_list[[3]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
+                                                       ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                          mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
+    output$dt_2015 = DT::renderDataTable(dt_2015)
+    
+    dt_2016 = datatable(data.frame(Neighborhood = big_list[[4]][[2]]@data$neib_name,
+                                   risk_level= big_list[[4]][[2]]@data$GANG_PRESENCE, 
+                                   Risk = get_quantile(big_list[[4]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
+                                                       ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                          mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
+    output$dt_2016 = DT::renderDataTable(dt_2016)
+    
+    dt_2017 = datatable(data.frame(Neighborhood = big_list[[5]][[2]]@data$neib_name,
+                                   risk_level= big_list[[5]][[2]]@data$GANG_PRESENCE, 
+                                   Risk = get_quantile(big_list[[5]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
+                                                       ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                          mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
+    output$dt_2017 = DT::renderDataTable(dt_2017)
+    
+    dt_2018 = datatable(data.frame(Neighborhood = big_list[[6]][[2]]@data$neib_name,
+                                   risk_level= big_list[[6]][[2]]@data$GANG_PRESENCE, 
+                                   Risk = get_quantile(big_list[[6]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
+                                                       ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                          mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
+    output$dt_2018 = DT::renderDataTable(dt_2018)
   }
   
   
@@ -656,16 +657,16 @@ shinyServer(function(input, output, session) {
   #Gang Presence
   {
     observeEvent(input$gang_affiliated_crime_num,
-      updateSliderInput(session, inputId = 'gang_affiliated_crime', value = input$gang_affiliated_crime_num)
+                 updateSliderInput(session, inputId = 'gang_affiliated_crime', value = input$gang_affiliated_crime_num)
     )
     observeEvent(input$graffiti_num,
                  updateSliderInput(session, inputId = 'graffiti', value = input$graffiti_num)
     )
     observeEvent(input$child_maltreatment_num,
-      updateSliderInput(session, inputId = 'child_maltreatment', value = input$child_maltreatment_num)
+                 updateSliderInput(session, inputId = 'child_maltreatment', value = input$child_maltreatment_num)
     )
     observeEvent(input$developmental_trauma_num,
-      updateSliderInput(session, inputId = 'developmental_trauma', value = input$developmental_trauma_num)
+                 updateSliderInput(session, inputId = 'developmental_trauma', value = input$developmental_trauma_num)
     )
     observeEvent(input$violent_prejudice_victimization_num,
                  updateSliderInput(session, inputId = 'violent_prejudice_victimization', value = input$violent_prejudice_victimization_num)
@@ -734,11 +735,11 @@ shinyServer(function(input, output, session) {
   observeEvent(input$gp_reset_weights,{
     updateSliderInput(session, inputId = 'gang_affiliated_crime', value = START_VALUE)
     updateSliderInput(session, inputId = 'child_maltreatment', value = START_VALUE)
-
+    
     updateSliderInput(session, inputId = 'developmental_trauma', value = START_VALUE)
     updateSliderInput(session, inputId = 'violent_prejudice_victimization', value = START_VALUE)
     updateSliderInput(session, inputId = 'disorder_in_neighborhood', value = START_VALUE)
-
+    
     updateSliderInput(session, inputId = 'presence_of_firearms', value = START_VALUE)
     updateSliderInput(session, inputId = 'youth_school_conflicts', value = START_VALUE)
     updateSliderInput(session, inputId = 'reported_disability', value = START_VALUE)
@@ -771,131 +772,131 @@ shinyServer(function(input, output, session) {
   #updating metrics, data tables, and displaying plot
   observeEvent(input$gang_presence_map,{
     { 
-    class_weights = data.frame(
-       matrix(
-         data = c(
-           'gang_affiliated_crime',           input$gang_affiliated_crime,
-           'graffiti',                        input$graffiti,
-           'child_maltreatment',              input$child_maltreatment,
-           'developmental_trauma',            input$developmental_trauma,
-           'violent_prejudice_victimization', input$violent_prejudice_victimization,
-           'disorder_in_neighborhood',        input$disorder_in_neighborhood,
-           'presence_of_illegal_firearms',    input$presence_of_firearms,
-           'trouble_at_school',               input$youth_school_conflicts,
-           'youth_with_disability',           input$reported_disability,
-           'economic_deprivation',            input$economic_deprivation,
-           'substance_abuse',                 input$substance_abuse#, 
-           #'social_discrimination',           0.2
-         ),
-         ncol = 2,
-         byrow = TRUE
-       ), stringsAsFactors = FALSE
-     )
-     
-     
-     focus_col = all_metrics[[1]][[1]][1]
-     new_big_list = get_new_big_list(class_weights = class_weights, big_list = big_list, replace_col = focus_col)
-     
-
-     #columns of focus
-     gp_sub_cols = c(all_metrics[[1]][[1]], class_weights[as.numeric(class_weights[,2]) > 0,1])
-     #color pallettes
-     # gp_sub_pals = get_pals(new_big_list, all_metrics[[1]][[1]])
-     #labels
-     # gp_sub_labels = get_labels(new_big_list, gp_sub_cols)
+      class_weights = data.frame(
+        matrix(
+          data = c(
+            'gang_affiliated_crime',           input$gang_affiliated_crime,
+            'graffiti',                        input$graffiti,
+            'child_maltreatment',              input$child_maltreatment,
+            'developmental_trauma',            input$developmental_trauma,
+            'exposure_to_violence_and_racial_prejudice', input$violent_prejudice_victimization,
+            'community_disorganization',        input$disorder_in_neighborhood,
+            'presence_of_illegal_firearms',    input$presence_of_firearms,
+            'school_violence_and_low_graduation',               input$youth_school_conflicts,
+            'youth_with_disabilities',           input$reported_disability,
+            'poverty',            input$economic_deprivation,
+            'substance_abuse',                 input$substance_abuse#, 
+            #'social_discrimination',           0.2
+          ),
+          ncol = 2,
+          byrow = TRUE
+        ), stringsAsFactors = FALSE
+      )
+      
+      
+      focus_col = all_metrics[[1]][[1]][1]
+      new_big_list = get_new_big_list(class_weights = class_weights, big_list = big_list, replace_col = focus_col)
+      
+      
+      #columns of focus
+      gp_sub_cols = c(all_metrics[[1]][[1]], class_weights[as.numeric(class_weights[,2]) > 0,1])
+      #color pallettes
+      # gp_sub_pals = get_pals(new_big_list, all_metrics[[1]][[1]])
+      #labels
+      # gp_sub_labels = get_labels(new_big_list, gp_sub_cols)
     }
-     
-     map = map
-     big_list = new_big_list
-     metric_title = all_metrics[[1]][[1]]
-     label_metric_cols = gp_sub_cols
-     tile_opacity = TILE_OPACITY
-     pred_dat = NULL
-     pred_title = NULL
-     hotspot_15 = hotspot_15
-     hotspot_17 = hotspot_17
-     school_points = school_points
-     quantile_bins = QUANTILE_BINS
-     cd_bounds = cd_bounds
-     
-     gp_sub_map = make_map(map, big_list, metric_title, label_metric_cols, hotspot_15, hotspot_17, school_points, cd_bounds, school_icons, html_legend_school_icons,
-                           pred_dat, pred_title, tile_opacity, quantile_bins, pallete_colors, reverse_pal,
-                           cd_colors, hotspot_15_colors, hotspot_17_colors, brightness_perc, raw_list, raw_data_cols, raw_data_col_names,
-                           council_centroid, hotspot_15_centroid, hotspot_17_centroid, label_transparency)
-     
-
-     
-     output$need_map = renderLeaflet(gp_sub_map)
-     
-     #updating datatables
-     output$metric_focus = renderText('Top Neighborhoods by Gang Presence Metrics')
-     {
-       dt_2013 = datatable(data.frame(Neighborhood = big_list[[1]][[2]]@data$neib_name,
-                                      risk_level= big_list[[1]][[2]]@data$GANG_PRESENCE, 
-                                      Risk = get_quantile(big_list[[1]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
-                                                                       ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
-                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
-       output$dt_2013 = DT::renderDataTable(dt_2013) 
-       
-       dt_2014 = datatable(data.frame(Neighborhood = big_list[[2]][[2]]@data$neib_name,
-                                      risk_level= big_list[[2]][[2]]@data$GANG_PRESENCE, 
-                                      Risk = get_quantile(big_list[[2]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
-                                                                       ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
-                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
-       output$dt_2014 = DT::renderDataTable(dt_2014)
-       
-       dt_2015 = datatable(data.frame(Neighborhood = big_list[[3]][[2]]@data$neib_name,
-                                      risk_level= big_list[[3]][[2]]@data$GANG_PRESENCE, 
-                                      Risk = get_quantile(big_list[[3]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
-                                                                       ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
-                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
-       output$dt_2015 = DT::renderDataTable(dt_2015)
-       
-       dt_2016 = datatable(data.frame(Neighborhood = big_list[[4]][[2]]@data$neib_name,
-                                      risk_level= big_list[[4]][[2]]@data$GANG_PRESENCE, 
-                                      Risk = get_quantile(big_list[[4]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
-                                                                       ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
-                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
-       output$dt_2016 = DT::renderDataTable(dt_2016)
-       
-       dt_2017 = datatable(data.frame(Neighborhood = big_list[[5]][[2]]@data$neib_name,
-                                      risk_level= big_list[[5]][[2]]@data$GANG_PRESENCE, 
-                                      Risk = get_quantile(big_list[[5]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
-                                                                       ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
-                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
-       output$dt_2017 = DT::renderDataTable(dt_2017)
-       
-       dt_2018 = datatable(data.frame(Neighborhood = big_list[[6]][[2]]@data$neib_name,
-                                      risk_level= big_list[[6]][[2]]@data$GANG_PRESENCE, 
-                                      Risk = get_quantile(big_list[[6]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
-                                                                       ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
-                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
-       output$dt_2018 = DT::renderDataTable(dt_2018)
-     }
-     
-     
-     
-     
-     # print(class_weights)
-     # print(new_big_list[[1]][[2]]@data[1:4,])
-     
+    
+    map = map
+    big_list = new_big_list
+    metric_title = all_metrics[[1]][[1]]
+    label_metric_cols = gp_sub_cols
+    tile_opacity = TILE_OPACITY
+    pred_dat = NULL
+    pred_title = NULL
+    hotspot_15 = hotspot_15
+    hotspot_17 = hotspot_17
+    school_points = school_points
+    quantile_bins = QUANTILE_BINS
+    cd_bounds = cd_bounds
+    
+    gp_sub_map = make_map(map, big_list, metric_title, label_metric_cols, hotspot_15, hotspot_17, school_points, cd_bounds, school_icons, html_legend_school_icons,
+                          pred_dat, pred_title, tile_opacity, quantile_bins, pallete_colors, reverse_pal,
+                          cd_colors, hotspot_15_colors, hotspot_17_colors, brightness_perc, raw_list, raw_data_cols, raw_data_col_names,
+                          council_centroid, hotspot_15_centroid, hotspot_17_centroid, label_transparency)
+    
+    
+    
+    output$need_map = renderLeaflet(gp_sub_map)
+    
+    #updating datatables
+    output$metric_focus = renderText('Top Neighborhoods by Gang Presence Metrics')
+    {
+      dt_2013 = datatable(data.frame(Neighborhood = big_list[[1]][[2]]@data$neib_name,
+                                     risk_level= big_list[[1]][[2]]@data$GANG_PRESENCE, 
+                                     Risk = get_quantile(big_list[[1]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                            mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
+      output$dt_2013 = DT::renderDataTable(dt_2013) 
+      
+      dt_2014 = datatable(data.frame(Neighborhood = big_list[[2]][[2]]@data$neib_name,
+                                     risk_level= big_list[[2]][[2]]@data$GANG_PRESENCE, 
+                                     Risk = get_quantile(big_list[[2]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                            mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
+      output$dt_2014 = DT::renderDataTable(dt_2014)
+      
+      dt_2015 = datatable(data.frame(Neighborhood = big_list[[3]][[2]]@data$neib_name,
+                                     risk_level= big_list[[3]][[2]]@data$GANG_PRESENCE, 
+                                     Risk = get_quantile(big_list[[3]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                            mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
+      output$dt_2015 = DT::renderDataTable(dt_2015)
+      
+      dt_2016 = datatable(data.frame(Neighborhood = big_list[[4]][[2]]@data$neib_name,
+                                     risk_level= big_list[[4]][[2]]@data$GANG_PRESENCE, 
+                                     Risk = get_quantile(big_list[[4]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                            mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
+      output$dt_2016 = DT::renderDataTable(dt_2016)
+      
+      dt_2017 = datatable(data.frame(Neighborhood = big_list[[5]][[2]]@data$neib_name,
+                                     risk_level= big_list[[5]][[2]]@data$GANG_PRESENCE, 
+                                     Risk = get_quantile(big_list[[5]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                            mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
+      output$dt_2017 = DT::renderDataTable(dt_2017)
+      
+      dt_2018 = datatable(data.frame(Neighborhood = big_list[[6]][[2]]@data$neib_name,
+                                     risk_level= big_list[[6]][[2]]@data$GANG_PRESENCE, 
+                                     Risk = get_quantile(big_list[[6]][[2]]@data$GANG_PRESENCE, QUANTILE_BINS, 
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                            mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
+      output$dt_2018 = DT::renderDataTable(dt_2018)
+    }
+    
+    
+    
+    
+    # print(class_weights)
+    # print(new_big_list[[1]][[2]]@data[1:4,])
+    
   })
   observeEvent(input$vocational_training_map, {
     {
-    class_weights = data.frame(
-      matrix(
-        data = c(
-          'joblessness',               input$joblessness,
-          'poverty_in_community',      input$poverty_in_community,
-          'concentrated_disadvantage', input$concentrated_disadvantage,
-          'edu_completion',            input$edu_completion,
-          'illegal_econ_activity',     input$illegal_econ_activity
-        ),
-        ncol = 2,
-        byrow = TRUE
-      ), stringsAsFactors = FALSE
-    )
-    
+      class_weights = data.frame(
+        matrix(
+          data = c(
+            'joblessness',               input$joblessness,
+            'poverty_in_community',      input$poverty_in_community,
+            'concentrated_disadvantage', input$concentrated_disadvantage,
+            'edu_completion',            input$edu_completion,
+            'illegal_econ_activity',     input$illegal_econ_activity
+          ),
+          ncol = 2,
+          byrow = TRUE
+        ), stringsAsFactors = FALSE
+      )
+      
       # class_weights = data.frame(
       #   matrix(
       #     data = c(
@@ -909,17 +910,17 @@ shinyServer(function(input, output, session) {
       #     byrow = TRUE
       #   ), stringsAsFactors = FALSE
       # )
-    
-    focus_col = all_metrics[[2]][[1]][1]
-    new_big_list = get_new_big_list(class_weights = class_weights, big_list = big_list, replace_col = focus_col)
-    
-
-    #columns of focus
-    vocational_cols = c(all_metrics[[2]][[1]], class_weights[as.numeric(class_weights[,2]) > 0,1])
-    #color pallettes
-    vocational_pals = get_pals(new_big_list, all_metrics[[2]][[1]])
-    #labels
-    vocational_labels = get_labels(new_big_list, vocational_cols)
+      
+      focus_col = all_metrics[[2]][[1]][1]
+      new_big_list = get_new_big_list(class_weights = class_weights, big_list = big_list, replace_col = focus_col)
+      
+      
+      #columns of focus
+      vocational_cols = c(all_metrics[[2]][[1]], class_weights[as.numeric(class_weights[,2]) > 0,1])
+      #color pallettes
+      vocational_pals = get_pals(new_big_list, all_metrics[[2]][[1]])
+      #labels
+      vocational_labels = get_labels(new_big_list, vocational_cols)
     }
     #putting together map
     map = map
@@ -939,7 +940,7 @@ shinyServer(function(input, output, session) {
                               pred_dat, pred_title, tile_opacity, quantile_bins, pallete_colors, reverse_pal,
                               cd_colors, hotspot_15_colors, hotspot_17_colors, brightness_perc, raw_list, raw_data_cols, raw_data_col_names,
                               council_centroid, hotspot_15_centroid, hotspot_17_centroid, label_transparency)
-
+    
     
     output$need_map = renderLeaflet(vocational_map)
     
@@ -951,42 +952,42 @@ shinyServer(function(input, output, session) {
       dt_2013 = datatable(data.frame(Neighborhood = big_list[[1]][[2]]@data$neib_name,
                                      risk_level= big_list[[1]][[2]]@data$VOCATIONAL_TRAINING, 
                                      Risk = get_quantile(big_list[[1]][[2]]@data$VOCATIONAL_TRAINING, QUANTILE_BINS, 
-                                                                      ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
       output$dt_2013 = DT::renderDataTable(dt_2013) 
       
       dt_2014 = datatable(data.frame(Neighborhood = big_list[[2]][[2]]@data$neib_name,
                                      risk_level= big_list[[2]][[2]]@data$VOCATIONAL_TRAINING, 
                                      Risk = get_quantile(big_list[[2]][[2]]@data$VOCATIONAL_TRAINING, QUANTILE_BINS, 
-                                                                      ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
       output$dt_2014 = DT::renderDataTable(dt_2014)
       
       dt_2015 = datatable(data.frame(Neighborhood = big_list[[3]][[2]]@data$neib_name,
                                      risk_level= big_list[[3]][[2]]@data$VOCATIONAL_TRAINING, 
                                      Risk = get_quantile(big_list[[3]][[2]]@data$VOCATIONAL_TRAINING, QUANTILE_BINS, 
-                                                                      ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
       output$dt_2015 = DT::renderDataTable(dt_2015)
       
       dt_2016 = datatable(data.frame(Neighborhood = big_list[[4]][[2]]@data$neib_name,
                                      risk_level= big_list[[4]][[2]]@data$VOCATIONAL_TRAINING, 
                                      Risk = get_quantile(big_list[[4]][[2]]@data$VOCATIONAL_TRAINING, QUANTILE_BINS, 
-                                                                      ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
       output$dt_2016 = DT::renderDataTable(dt_2016)
       
       dt_2017 = datatable(data.frame(Neighborhood = big_list[[5]][[2]]@data$neib_name,
                                      risk_level= big_list[[5]][[2]]@data$VOCATIONAL_TRAINING, 
                                      Risk = get_quantile(big_list[[5]][[2]]@data$VOCATIONAL_TRAINING, QUANTILE_BINS, 
-                                                                      ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
       output$dt_2017 = DT::renderDataTable(dt_2017)
       
       dt_2018 = datatable(data.frame(Neighborhood = big_list[[6]][[2]]@data$neib_name,
                                      risk_level= big_list[[6]][[2]]@data$VOCATIONAL_TRAINING, 
                                      Risk = get_quantile(big_list[[6]][[2]]@data$VOCATIONAL_TRAINING, QUANTILE_BINS, 
-                                                                      ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
       output$dt_2018 = DT::renderDataTable(dt_2018)
     }
@@ -998,32 +999,32 @@ shinyServer(function(input, output, session) {
   })
   observeEvent(input$parent_awareness_map, {
     {
-    class_weights = data.frame(
-      matrix(
-        data = c(
-          'child_maltreatment',                input$child_maltreatment_pa,
-          'prop_single_mothers',               input$prop_single_mothers,
-          'teen_mothers',                      input$teen_mothers,
-          'families_in_poverty',               input$families_in_poverty,
-          'families_unaware_of_community',     input$families_unaware_of_community,
-          'drug_abuse',                        input$drug_abuse
-        ),
-        ncol = 2,
-        byrow = TRUE
-      ), stringsAsFactors = FALSE
-    )
-    
-    focus_col = all_metrics[[3]][[1]][1]
-    new_big_list = get_new_big_list(class_weights = class_weights, big_list = big_list, replace_col = focus_col)
-    
-    
-    
-    #columns of focus
-    parent_cols = c(all_metrics[[3]][[1]], class_weights[as.numeric(class_weights[,2]) > 0,1])
-    #color pallettes
-    parent_pals = get_pals(new_big_list, all_metrics[[3]][[1]])
-    #labels
-    parent_labels = get_labels(new_big_list, parent_cols)
+      class_weights = data.frame(
+        matrix(
+          data = c(
+            'child_maltreatment',                input$child_maltreatment_pa,
+            'prop_single_mothers',               input$prop_single_mothers,
+            'teen_mothers',                      input$teen_mothers,
+            'families_in_poverty',               input$families_in_poverty,
+            'families_unaware_of_community',     input$families_unaware_of_community,
+            'drug_abuse',                        input$drug_abuse
+          ),
+          ncol = 2,
+          byrow = TRUE
+        ), stringsAsFactors = FALSE
+      )
+      
+      focus_col = all_metrics[[3]][[1]][1]
+      new_big_list = get_new_big_list(class_weights = class_weights, big_list = big_list, replace_col = focus_col)
+      
+      
+      
+      #columns of focus
+      parent_cols = c(all_metrics[[3]][[1]], class_weights[as.numeric(class_weights[,2]) > 0,1])
+      #color pallettes
+      parent_pals = get_pals(new_big_list, all_metrics[[3]][[1]])
+      #labels
+      parent_labels = get_labels(new_big_list, parent_cols)
     }
     #putting together map
     map = map
@@ -1044,7 +1045,7 @@ shinyServer(function(input, output, session) {
                           cd_colors, hotspot_15_colors, hotspot_17_colors, brightness_perc, raw_list, raw_data_cols, raw_data_col_names,
                           council_centroid, hotspot_15_centroid, hotspot_17_centroid, label_transparency)
     
-  
+    
     output$need_map = renderLeaflet(parent_map)
     
     #updating datatables
@@ -1054,42 +1055,42 @@ shinyServer(function(input, output, session) {
       dt_2013 = datatable(data.frame(Neighborhood = big_list[[1]][[2]]@data$neib_name,
                                      risk_level= big_list[[1]][[2]]@data$PARENT_AWARENESS, 
                                      Risk = get_quantile(big_list[[1]][[2]]@data$PARENT_AWARENESS, QUANTILE_BINS, 
-                                                                      ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
       output$dt_2013 = DT::renderDataTable(dt_2013) 
       
       dt_2014 = datatable(data.frame(Neighborhood = big_list[[2]][[2]]@data$neib_name,
                                      risk_level= big_list[[2]][[2]]@data$PARENT_AWARENESS, 
                                      Risk = get_quantile(big_list[[2]][[2]]@data$PARENT_AWARENESS, QUANTILE_BINS, 
-                                                                      ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
       output$dt_2014 = DT::renderDataTable(dt_2014)
       
       dt_2015 = datatable(data.frame(Neighborhood = big_list[[3]][[2]]@data$neib_name,
                                      risk_level= big_list[[3]][[2]]@data$PARENT_AWARENESS, 
                                      Risk = get_quantile(big_list[[3]][[2]]@data$PARENT_AWARENESS, QUANTILE_BINS, 
-                                                                      ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
       output$dt_2015 = DT::renderDataTable(dt_2015)
       
       dt_2016 = datatable(data.frame(Neighborhood = big_list[[4]][[2]]@data$neib_name,
                                      risk_level= big_list[[4]][[2]]@data$PARENT_AWARENESS, 
                                      Risk = get_quantile(big_list[[4]][[2]]@data$PARENT_AWARENESS, QUANTILE_BINS, 
-                                                                      ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
       output$dt_2016 = DT::renderDataTable(dt_2016)
       
       dt_2017 = datatable(data.frame(Neighborhood = big_list[[5]][[2]]@data$neib_name,
                                      risk_level= big_list[[5]][[2]]@data$PARENT_AWARENESS, 
                                      Risk = get_quantile(big_list[[5]][[2]]@data$PARENT_AWARENESS, QUANTILE_BINS, 
-                                                                      ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
       output$dt_2017 = DT::renderDataTable(dt_2017)
       
       dt_2018 = datatable(data.frame(Neighborhood = big_list[[6]][[2]]@data$neib_name,
                                      risk_level= big_list[[6]][[2]]@data$PARENT_AWARENESS, 
                                      Risk = get_quantile(big_list[[6]][[2]]@data$PARENT_AWARENESS, QUANTILE_BINS, 
-                                                                      ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
+                                                         ret_factor = FALSE)) %>% dplyr::arrange(-risk_level) %>%
                             mutate(Risk = paste0(round(Risk,4), '%ile')) %>% select(-risk_level), selection = 'single')
       output$dt_2018 = DT::renderDataTable(dt_2018)
     }

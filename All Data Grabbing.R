@@ -37,6 +37,7 @@ install_and_load = function(library){
 # install_and_load('stringr')
 # install_and_load('sf')
 install_and_load('sp')
+install_and_load('magrittr')
 
 ####### Setting api key #########
 
@@ -63,7 +64,7 @@ START_DATE = as.POSIXct('2017-01-01 00:00:00')
 END_DATE = as.POSIXct('2018-01-01 00:00:00')
 SQUARE_METER_TO_SQUARE_MILE = 3.86102E-7
 INCLUDED_LEVELS = c(1)
-ACS_YEAR = 2016
+ACS_YEAR = 2017
 
 
 ######## Reading Constant Data #############
@@ -74,158 +75,61 @@ ssci_incidents_full = readRDS('RDS files/SSCI_IR_ma_16-18_for_plotting.rds')
 
 sj = readRDS('RDS files/sj_shapefile.rds')
 
-acs_spdf = readRDS('RDS files/2016 ACS spdf.rds')
+# acs_spdf = readRDS('RDS files/2016 ACS spdf.rds')
 
 ########## ACS DATA - acs_spdf ###########
 
+install_and_load('tidycensus')
 
 # acs_acs5_vars = load_variables(ACS_YEAR, 'acs5', cache = CACHE_OPTION)
 # View(acs_acs5_vars)
-# 
-# acs_vars = data.frame(
-#   acs_code = c(#Vocational Training
-#                'B00001_001', #Population sampled
-#                'B01001_001', #Total Population
-#                'B27011_014', #Unemployed
-#                'B10058_007', #Not in Labor Force
-#                'B06012_002', #Below 100% of Poverty Line
-#                'B15001_005', 'B15001_046', #Male and Female 18-24 Less than a high school graduate. Add Together
-#                #Substance Abuse
-#                'B18135_002', #population under 18
-#                'B18135_003', #youth with a disability
-#                #Parent Awareness
-#                'B11001_006', #Single mothers
-#                'B27019_003', #25-64 without high school graduate
-#                'B17017_003', #Family households under poverty line
-#                'B05005_002', #Entered US 2010 or Later
-#                'B99051_005', #Foreign born
-#                #Gang Presence
-#                'B18135_003', #Under 18 with a disability
-#                'B10059_002', #income under poverty line
-#                'B17020_003', 'B17020_004', 'B17020_005', #youth below poverty line: 6 and younger, 6-11, and 12-17
-#                'B01001H_001', 'B01001B_001', 'B01001D_001', 'B01001I_001', 'B01001C_001', 'B01001E_001', 'B01001F_001', 'B01001G_001' #white, black, asian, hispanic, amiakn, hawaiipi, other, two or more
-#                ),
-#   var_name = c(#Vocational Training
-#                'sampled_pop',
-#                'total_pop',
-#                'unemployed',
-#                'not_in_labor_force',
-#                'below_poverty_line',
-#                'no_diploma_18_24_male', 'no_diploma_18_24_female',
-#                #Substance Abuse
-#                'under_18_pop',
-#                'under_18_with_disability',
-#                #Parent Awareness
-#                'single_mothers',
-#                'no_diploma_25_64',
-#                'family_in_poverty',
-#                'entered_2010_later',
-#                'foreign_born',
-#                #Gang Presence
-#                'disability_under_18',
-#                'income_under_poverty_line',
-#                'Poverty_6_and_younger', 'Poverty_6_11', 'Poverty_12_17',
-#                'white', 'black', 'asian', 'hispanic', 'amiakn', 'hawaiipi', 'other_races', 'two_or_more_races'
-#                ), stringsAsFactors = F
-# )
-# 
-# acs_dat <- get_acs(geography = 'tract',
-#                    variables = c(acs_vars[1,1]),
-#                    state = '006', #state fips code for CA
-#                    county = "085", #county fips code for santa clara
-#                    geometry = TRUE, year = ACS_YEAR) %>% sf::st_transform(crs = '+init=epsg:4326')
-# colnames(acs_dat)[colnames(acs_dat) == 'estimate'] = acs_vars[1,2]
-# for(var_i in 2:nrow(acs_vars)){
-#   var_name = acs_vars[var_i,1]
-#   new_var_table = get_acs(geography = 'tract',
-#                           variables = var_name,
-#                           state = '006',
-#                           county = '085',
-#                           geometry = FALSE, year = ACS_YEAR)
-#   new_var_column = new_var_table$estimate
-#   acs_dat = cbind(acs_dat, new_var = new_var_column)
-#   colnames(acs_dat)[colnames(acs_dat) == 'new_var'] = acs_vars[var_i, 2]
-# } #individually adding each ACS variable since the get_acs function only seems to be able to handle one variable at a time.
-# acs_dat$variable = NULL
-# acs_dat$moe = NULL
-# 
-# 
-# acs_spdf = sf::as_Spatial(acs_dat)
-# 
-# acs_spdf$tract = gsub('(Census Tract) ([[:digit:]]+)(\\.*)([[:digit:]]*)([[:print:]]*)', '\\2\\3\\4', acs_spdf@data$NAME)
-# 
-# saveRDS(acs_spdf, 'RDS files/2016 ACS spdf.rds')
 
-
-
-######### Cleaning my conscience and grabbing more years of ACS data ###########
-
-ACS_YEAR = 2016
-
-install_and_load('tidyverse')
-install_and_load('tidycensus')
-
-acs_2016_vars = load_variables(ACS_YEAR, 'acs5', cache = CACHE_OPTION)
-acs_2015_vars = load_variables(ACS_YEAR-1, 'acs5', cache = CACHE_OPTION)
-acs_2014_vars = load_variables(ACS_YEAR-2, 'acs5', cache = CACHE_OPTION)
-acs_2013_vars = load_variables(ACS_YEAR-3, 'acs5', cache = CACHE_OPTION)
-# acs_2012_vars = load_variables(ACS_YEAR-4, 'acs5', cache = CACHE_OPTION)
-
-View(acs_acs5_vars)
-
-acs_vars = 
-  {data.frame(
+acs_vars = data.frame(
   acs_code = c(#Vocational Training
-    'B00001_001', #Population sampled
-    'B01001_001', #Total Population
-    'B27011_014', #Unemployed
-    'B10058_007', #Not in Labor Force
-    'B06012_002', #Below 100% of Poverty Line
-    'B15001_005', 'B15001_046', #Male and Female 18-24 Less than a high school graduate. Add Together
-    #Substance Abuse
-    'B18135_002', #population under 18
-    #Parent Awareness
-    'B11001_006', #Single mothers
-    'B27019_003', #25-64 without high school graduate
-    'B17017_003', #Family households under poverty line
-    'B05005_002', #Entered US 2010 or Later
-    'B99051_005', #Foreign born
-    #Gang Presence
-    'B18135_003', #Under 18 with a disability
-    'B10059_002', #income under poverty line
-    'B17020_003', 'B17020_004', 'B17020_005', #youth below poverty line: 6 and younger, 6-11, and 12-17
-    'B01001H_001', 'B01001B_001', 'B01001D_001', 'B01001I_001', 'B01001C_001', 'B01001E_001', 'B01001F_001', 'B01001G_001' #white, black, asian, hispanic, amiakn, hawaiipi, other, two or more
-  ),
+               'B00001_001', #Population sampled
+               'B01001_001', #Total Population
+               'B27011_014', #Unemployed
+               'B10058_007', #Not in Labor Force
+               'B06012_002', #Below 100% of Poverty Line
+               'B15001_005', 'B15001_046', #Male and Female 18-24 Less than a high school graduate. Add Together
+               #Substance Abuse
+               'B18135_002', #population under 18
+               'B18135_003', #youth with a disability
+               #Parent Awareness
+               'B11001_006', #Single mothers
+               'B27019_003', #25-64 without high school graduate
+               'B17017_003', #Family households under poverty line
+               'B05005_002', #Entered US 2010 or Later
+               'B99051_005', #Foreign born
+               #Gang Presence
+               'B18135_003', #Under 18 with a disability
+               'B10059_002', #income under poverty line
+               'B17020_003', 'B17020_004', 'B17020_005', #youth below poverty line: 6 and younger, 6-11, and 12-17
+               'B01001H_001', 'B01001B_001', 'B01001D_001', 'B01001I_001', 'B01001C_001', 'B01001E_001', 'B01001F_001', 'B01001G_001' #white, black, asian, hispanic, amiakn, hawaiipi, other, two or more
+               ),
   var_name = c(#Vocational Training
-    'sampled_pop',
-    'total_pop',
-    'unemployed',
-    'not_in_labor_force',
-    'below_poverty_line',
-    'no_diploma_18_24_male', 'no_diploma_18_24_female',
-    #Substance Abuse
-    'under_18_pop',
-    #Parent Awareness
-    'single_mothers',
-    'no_diploma_25_64',
-    'family_in_poverty',
-    'entered_2010_later',
-    'foreign_born',
-    #Gang Presence
-    'disability_under_18',
-    'income_under_poverty_line',
-    'Poverty_6_and_younger', 'Poverty_6_11', 'Poverty_12_17',
-    'white', 'black', 'asian', 'hispanic', 'amiakn', 'hawaiipi', 'other_races', 'two_or_more_races'
-  ), stringsAsFactors = F
-  )}
-
-install_and_load('rowr')
-
-print(cbind.fill(acs_vars[order(acs_vars[,1]),], as.data.frame(acs_2015_vars[acs_2015_vars$name %in% acs_vars[,1],][,1:2])))#check
-print(cbind.fill(acs_vars[order(acs_vars[,1]),], as.data.frame(acs_2014_vars[acs_2014_vars$name %in% acs_vars[,1],][,1:2])))#check
-print(cbind.fill(acs_vars[order(acs_vars[,1]),], as.data.frame(acs_2013_vars[acs_2013_vars$name %in% acs_vars[,1],][,1:2])))#check
-# print(cbind.fill(acs_vars[order(acs_vars[,1]),], as.data.frame(acs_2012_vars[acs_2012_vars$name %in% acs_vars[,1],][,1:2])))#nope
-
+               'sampled_pop',
+               'total_pop',
+               'unemployed',
+               'not_in_labor_force',
+               'below_poverty_line',
+               'no_diploma_18_24_male', 'no_diploma_18_24_female',
+               #Substance Abuse
+               'under_18_pop',
+               'under_18_with_disability',
+               #Parent Awareness
+               'single_mothers',
+               'no_diploma_25_64',
+               'family_in_poverty',
+               'entered_2010_later',
+               'foreign_born',
+               #Gang Presence
+               'disability_under_18',
+               'income_under_poverty_line',
+               'Poverty_6_and_younger', 'Poverty_6_11', 'Poverty_12_17',
+               'white', 'black', 'asian', 'hispanic', 'amiakn', 'hawaiipi', 'other_races', 'two_or_more_races'
+               ), stringsAsFactors = F
+)
 
 acs_dat <- get_acs(geography = 'tract',
                    variables = c(acs_vars[1,1]),
@@ -252,11 +156,7 @@ acs_spdf = sf::as_Spatial(acs_dat)
 
 acs_spdf$tract = gsub('(Census Tract) ([[:digit:]]+)(\\.*)([[:digit:]]*)([[:print:]]*)', '\\2\\3\\4', acs_spdf@data$NAME)
 
-saveRDS(acs_spdf, 'RDS files/2016 ACS spdf.rds')
-
-
-
-
+saveRDS(acs_spdf, 'RDS files/2017 ACS spdf.rds')
 
 
 
@@ -383,8 +283,10 @@ graf_coords = data.frame(lon = geocode_graf_table$lon[use_inds], lat = geocode_g
 #creating the spatialpointsdataframe with a consistent proj4string
 graf_fin = sp::SpatialPointsDataFrame(coords = graf_coords,
                                       data = data.frame(id = graf$Work.Order.Id[use_inds], address = geocode_graf_table$address[use_inds], surface = graf$Surface[use_inds],
-                                                        sqft = graf$Surface.Square.Feet[use_inds], cost = graf$Cost[use_inds], date = graf$Closed.Date[use_inds]),
+                                                        sqft = graf$Surface.Square.Feet[use_inds], cost = graf$Cost[use_inds], date = graf$Closed.Date[use_inds], stringsAsFactors = FALSE),
                                       proj4string = full_spdf@proj4string)
+
+graf_fin@data$date = gsub('(/20)([0-9]{2})', '/\\2', graf_fin@data$date)
 
 #converting the data variable into a data object.
 graf_fin$date = as.Date(as.character(graf_fin$date), format = '%m/%d/%y')
@@ -470,7 +372,7 @@ saveRDS(neib_names_data, file = 'RDS files/neighborhood names by census tract GE
 saveRDS(full_spdf, 'RDS files/Metrics without time dependency.rds')
 saveRDS(graf_fin, 'RDS files/Full Graffiti Data.rds')
 
-######## Adding East Side Union to the school boundaries - school_bounds_updated.rds ############
+######## Adding East Side Union School District to the school boundaries - school_bounds_updated.rds ############
 school_bounds = readRDS('RDS files/school_bounds_for_16-18_IRs.rds') %>% sp::spTransform(full_spdf@proj4string)
 
 #so we need to add in east side union high school district to school boundaries.
@@ -529,272 +431,272 @@ grad_rates_spdf@data$date = as.Date(paste0(grad_rates_spdf$Graduating.Year, '-01
 saveRDS(grad_rates_spdf, 'RDS files/graduation rates spdf.rds')
 
 ######CHECKPOINT - Anything beyond this is date-dependent and handled in the "Agregate Yearly Data.R" file. Below is just testing ############
-############################
-
-############# Crime Data  - crime_data, crime_by_tract, and full_spdf ############
-install_and_load('dplyr')
-
-
-crime_data = crime_data_full %>% dplyr::filter(rpt_dt > START_DATE, rpt_dt < END_DATE)
-
-
-
-#organizing the crimes of importance here. 
-{crimes = data.frame(
-  #crime title
-  crime = c(
-    #vocational training
-    'AUTO THEFT', 
-    'NARCOTICS',
-    'SEX',
-    #Substance Abuse
-    'DUI', #DUI with drugs or alc
-    '647(F) PC DRUNK IN PUBLIC', #also include NARCOTICS
-    #Parent Awareness
-    'CHILD ABUSE',
-    'CHILD MOLEST',
-    'CHILD NEGLECT',
-    '243(E)(1) PC BATTERY DOMESTIC', '273.5(A) PC DOMESTIC VIOLENCE', #Domestic Violence
-    'MISSING JUV', #runaway youth
-    #Gang Presence
-    'AGG ASSAULT', '261.5PC UNLAW INTERCRSE MINOR',#Developmental Trauma. Also include child molestation above
-    #Child Maltreatment. Also include domestic violence, child neglect/abuse, and Runaway youth
-    'ROBBERY', 'ASSAULT', '422 PC CRIMINAL THREATS', #Violent and Prejudice Victimization. Also include AGG ASSAULT. 422 is threats or hate crimes.
-    '594 PC VANDALISM-GRAFFITI', 'DISTURB PEACE', #Disorder, also include NARCOTICS, and DUI and drunk in public
-    'WEAPONS', '211 PC ROBBERY ARMED', '211 PC ROBBERY STRONG-ARM', 'DOMESTIC-211 PC ARMED ROBBERY' #Weapons. This is all Weapons possession and armed robberies.
-  ),
-  #which column the title is from (usually OFFENSE_DESCRIPTION or CATEGORY)
-  column = paste0('c_',c(
-    #vocational training
-    'auto_theft',
-    'narcotics',
-    'sex',
-    #substance abuse
-    'dui', #DUI with drugs or alc
-    'drunk_in_public',
-    #Parent Awarenesss
-    'child_abuse',
-    'child_molest',
-    'child_neglect',
-    'domestic_battery', 'domestic_violence',
-    'missing_juv',
-    #Gang Presence
-    'agg_assualt', 'intercourse_with_minor', #Also include child molestation above
-    #Child Maltreatment. Also include domestic violence, child neglect/abuse, and Runaway youth
-    'robbery', 'assault', 'threats',  #Violent and Prejudice Victimization. Also include AGG ASSAULT. 422 is threats or hate crimes.
-    'graffiti', 'disturbance', #Disorder, also include NARCOTICS and DUI and drunk in public
-    'weapons', 'armed_robbery', 'strong_armed_robbery', 'domestic_armed_robbery'
-  )), stringsAsFactors = F
-)
-}
-
-crime_data = crime_data[crime_data$OFFENSE_DESCRIPTION %in% crimes[,1] | crime_data$CATEGORY %in% crimes[,1],]
-
-crimes_matrix = matrix(0, nrow = nrow(full_spdf@data), ncol = length(crimes[,1]))
-colnames(crimes_matrix) = crimes[,1]
-crime_by_tract = data.frame(GEOID = full_spdf@data$GEOID, crimes_matrix, stringsAsFactors = F) %>% arrange(GEOID)
-colnames(crime_by_tract) = c('GEOID', crimes[,1])
+# ############################
+# 
+# ############# Crime Data  - crime_data, crime_by_tract, and full_spdf ############
+# install_and_load('dplyr')
+# 
+# 
+# crime_data = crime_data_full %>% dplyr::filter(rpt_dt > START_DATE, rpt_dt < END_DATE)
+# 
+# 
+# 
+# #organizing the crimes of importance here. 
+# {crimes = data.frame(
+#   #crime title
+#   crime = c(
+#     #vocational training
+#     'AUTO THEFT', 
+#     'NARCOTICS',
+#     'SEX',
+#     #Substance Abuse
+#     'DUI', #DUI with drugs or alc
+#     '647(F) PC DRUNK IN PUBLIC', #also include NARCOTICS
+#     #Parent Awareness
+#     'CHILD ABUSE',
+#     'CHILD MOLEST',
+#     'CHILD NEGLECT',
+#     '243(E)(1) PC BATTERY DOMESTIC', '273.5(A) PC DOMESTIC VIOLENCE', #Domestic Violence
+#     'MISSING JUV', #runaway youth
+#     #Gang Presence
+#     'AGG ASSAULT', '261.5PC UNLAW INTERCRSE MINOR',#Developmental Trauma. Also include child molestation above
+#     #Child Maltreatment. Also include domestic violence, child neglect/abuse, and Runaway youth
+#     'ROBBERY', 'ASSAULT', '422 PC CRIMINAL THREATS', #Violent and Prejudice Victimization. Also include AGG ASSAULT. 422 is threats or hate crimes.
+#     '594 PC VANDALISM-GRAFFITI', 'DISTURB PEACE', #Disorder, also include NARCOTICS, and DUI and drunk in public
+#     'WEAPONS', '211 PC ROBBERY ARMED', '211 PC ROBBERY STRONG-ARM', 'DOMESTIC-211 PC ARMED ROBBERY' #Weapons. This is all Weapons possession and armed robberies.
+#   ),
+#   #which column the title is from (usually OFFENSE_DESCRIPTION or CATEGORY)
+#   column = paste0('c_',c(
+#     #vocational training
+#     'auto_theft',
+#     'narcotics',
+#     'sex',
+#     #substance abuse
+#     'dui', #DUI with drugs or alc
+#     'drunk_in_public',
+#     #Parent Awarenesss
+#     'child_abuse',
+#     'child_molest',
+#     'child_neglect',
+#     'domestic_battery', 'domestic_violence',
+#     'missing_juv',
+#     #Gang Presence
+#     'agg_assualt', 'intercourse_with_minor', #Also include child molestation above
+#     #Child Maltreatment. Also include domestic violence, child neglect/abuse, and Runaway youth
+#     'robbery', 'assault', 'threats',  #Violent and Prejudice Victimization. Also include AGG ASSAULT. 422 is threats or hate crimes.
+#     'graffiti', 'disturbance', #Disorder, also include NARCOTICS and DUI and drunk in public
+#     'weapons', 'armed_robbery', 'strong_armed_robbery', 'domestic_armed_robbery'
+#   )), stringsAsFactors = F
+# )
+# }
+# 
+# crime_data = crime_data[crime_data$OFFENSE_DESCRIPTION %in% crimes[,1] | crime_data$CATEGORY %in% crimes[,1],]
+# 
+# crimes_matrix = matrix(0, nrow = nrow(full_spdf@data), ncol = length(crimes[,1]))
+# colnames(crimes_matrix) = crimes[,1]
+# crime_by_tract = data.frame(GEOID = full_spdf@data$GEOID, crimes_matrix, stringsAsFactors = F) %>% arrange(GEOID)
+# colnames(crime_by_tract) = c('GEOID', crimes[,1])
+# # geoid_list = crime_by_tract$GEOID
+# # subject_geoid = crime_data[crime_data$CATEGORY == 'AGG ASSAULT','geoid']
+# 
+# 
 # geoid_list = crime_by_tract$GEOID
-# subject_geoid = crime_data[crime_data$CATEGORY == 'AGG ASSAULT','geoid']
-
-
-geoid_list = crime_by_tract$GEOID
-for(n in 2:ncol(crime_by_tract)){
-  crime_by_tract[,n] = count_tract_appearance(geoid_list = geoid_list, 
-                                              subject_geoid = crime_data[crime_data$CATEGORY == colnames(crime_by_tract)[n] | 
-                                                                           crime_data$OFFENSE_DESCRIPTION == colnames(crime_by_tract)[n],'geoid'])[,2]
-}
-
-colnames(crime_by_tract) = c('GEOID', crimes[,2])
-
-#Sanity check --> the above works, and quickly.
-#print(crime_data[crime_data$geoid == '06085502907',c('CATEGORY', 'OFFENSE_DESCRIPTION')] %>% arrange(CATEGORY, OFFENSE_DESCRIPTION))
-
-
-full_spdf@data = merge(full_spdf@data, crime_by_tract, by = 'GEOID')
-
-
-############ SSCI Incident Data - incident_counts, full_spdf ##########
-
-school_bounds = readRDS('RDS files/school_bounds_for_16-18_IRs.rds') %>% sp::spTransform(full_spdf@proj4string)
-ssci_incidents = ssci_incidents_full %>% dplyr::filter(level %in% INCLUDED_LEVELS) %>%
-  select(date, school, level) %>%
-  filter(date > START_DATE, date < END_DATE) %>% select(-date)
-
-ssci = stats::aggregate(ssci_incidents$level, by = list(ssci_incidents$school), FUN = sum)
-ssci_bounds = school_bounds[school_bounds$OBJECTID %in% ssci$Group.1,]
-
-intersect_matrix = matrix(data = 0, nrow = nrow(ssci_bounds@data), ncol = nrow(full_spdf@data))
-colnames(intersect_matrix) = full_spdf@data$GEOID
-rownames(intersect_matrix) = ssci_bounds@data$OBJECTID
-
-
-#Let's just attempt to identify the tracts that a single district is in.
-# one_dis = list(school_bounds@polygons[[1]]) %>% sp::SpatialPolygons(proj4string =  full_spdf@proj4string)
-for(school_ind in seq_along(ssci_bounds@polygons)){
-  intersect_matrix[school_ind,which(rgeos::gIntersects(school_bounds[school_ind,], full_spdf, byid = TRUE))] = 1
-}
-#Now we have a matrix which marks every tract that is in every school boundary as 1.
-
-incident_counts = data.frame(GEOID = colnames(intersect_matrix), ssci_incidents = as.numeric(colSums(intersect_matrix)))
-
-full_spdf@data = merge(full_spdf@data, incident_counts, by = 'GEOID')
-
-
-
-########### Neibor Matrix - loc_dist_matrix ###########
-# 1/x_ij where x is number of blocks between block i and j (starting at 1), 0 if more than MAX_BLOCK_DIST away 
-MAX_LOC_DIST = 1
-loc_it = 1
-
-#initializing the matrix
-loc_dist_matrix = matrix(0, nrow = nrow(full_spdf@data), ncol = nrow(full_spdf@data))
-loc_matrix = gTouches(full_spdf, byid = TRUE)
-
-
-
-#iterates through all blocks of 1 - MAX_BLOCK_DIST away, identifies which iteration it was picked up, and marks that number into matrix
-#this will likely take hours, so we are going to run it overnight. Let's transfer this r code and the census df to our local machine.
-for(loc_it_count in loc_it : ncol(loc_dist_matrix)){
-  layer_locs = loc_it_count
-  marked_locs = loc_it_count
-  for(its in 1  : MAX_LOC_DIST){
-    if(length(layer_locs) > 1){
-      layer_locs_vec = which(rowSums(loc_matrix[,layer_locs])>0)
-      
-    }else{
-      layer_locs_vec = which(loc_matrix[,layer_locs])
-    }
-    layer_locs_vec = layer_locs_vec[which(!(layer_locs_vec %in% marked_locs))]
-    loc_dist_matrix[layer_locs_vec,loc_it_count] = its
-    layer_locs = layer_locs_vec
-    marked_locs = c(marked_locs, layer_locs)
-  }
-  # if(loc_it_count %% 50 == 0) print(loc_it_count)
-  
-}
-# saveRDS(block_dist_matrix, 'RDS files/block_dist_matrix.rds')
-# saveRDS(block, 'RDS files/current_block_it.rds')
-# saveRDS(block_matrix, 'RDS files/block_matrix_t_f.rds')
-#checking to make sure the above works - it seems to work.
-# plot(full_spdf[loc_dist_matrix[,200] > 0 & loc_dist_matrix[,200] < 3,])
-
-colnames(loc_dist_matrix) = full_spdf@data$GEOID
-rownames(loc_dist_matrix) = full_spdf@data$GEOID
-
-
-# loc_dist_matrix = 1/loc_dist_matrix
-
-# loc_dist_matrix[loc_dist_matrix > 1] = 0
-
-
-
-############# That's all the data. #############
-
-
-############# Handling data operations and dropping certain data - need_metrics_spdf #############
-
-
-
-columns_to_convert_to_percentages_of_total_population = 
-  c('unemployed', 'not_in_labor_force', 'below_poverty_line', 
-    'no_diploma_18_24_male', 'no_diploma_18_24_female', 'under_18_pop', 'under_18_with_disability', 'single_mothers',
-    'no_diploma_25_64', 'family_in_poverty', 'entered_2010_later', 'foreign_born', 'disability_under_18',
-    'income_under_poverty_line', 'Poverty_6_and_younger', 'Poverty_6_11', 'Poverty_12_17',
-    crimes[,2], 'ssci_incidents')
-
-#calculating ethnic diversity index (edi)
-race_cols = c('white', 'black', 'asian', 
-'hispanic', 'amiakn', 'hawaiipi', 'other_races', 'two_or_more_races')
-
-#calculating diversity index - 
-num_races = length(race_cols)
-total_race_pops = rowSums(full_spdf@data[,race_cols])
-race_fractions = full_spdf@data[,race_cols] / total_race_pops
-race_fractions_reduced = (race_fractions - (1/num_races))^2 #this works element-wise, so it works as we want it to.
-d_8 = sqrt(rowSums(race_fractions_reduced))
-c1 = 100
-c2 = -100*sqrt(num_races*(num_races-1))/(num_races - 1)
-edi = c1 + (c2*d_8)
-
-#works
-# print(edi[1:6])
-# print(full_spdf@data[1:6, race_cols])
-
-#Turning all of the census and crime data into percentages of total population
-full_spdf@data[,columns_to_convert_to_percentages_of_total_population] = 
-  full_spdf@data[,columns_to_convert_to_percentages_of_total_population]/full_spdf@data$total_pop
-
-full_spdf@data$edi = edi
-
-#creating the "youth in poverty" variable
-full_spdf$youth_in_poverty = full_spdf$Poverty_6_and_younger + full_spdf$Poverty_6_11 + full_spdf$Poverty_12_17
-#creating a variable for all 18-24 yo without a high school diploma
-full_spdf$no_diploma_18_24 = full_spdf$no_diploma_18_24_female + full_spdf$no_diploma_18_24_male
-
-
-need_metrics_spdf = full_spdf
-need_metrics_spdf@data = need_metrics_spdf@data[,-which(colnames(need_metrics_spdf@data) %in% c('ALAND', 'overobese_teen',
-                                                    'overobese_child', 'OBJECTID',
-                                                    'tract', race_cols, 'Poverty_12_17',
-                                                    'Poverty_6_11', 'Poverty_6_and_younger',
-                                                    'no_diploma_18_24_male',
-                                                    'no_diploma_18_24_female',
-                                                    'under_18_pop',
-                                                    'sampled_pop', 'neibid'))]
-
-
-
-########## Calculating Concentrated Economic Disadvantage ###########
-
-#relative poverty
-poverty_vec = loc_dist_matrix %*% need_metrics_spdf@data$below_poverty_line
-division_vec = loc_dist_matrix %*% rep(1, nrow(loc_dist_matrix))
-need_metrics_spdf@data$rel_poverty = need_metrics_spdf@data$below_poverty_line/(poverty_vec/division_vec)
-
-#relative unemployment
-unemployment_vec = loc_dist_matrix %*% need_metrics_spdf@data$unemployed
-need_metrics_spdf@data$rel_unemployment = need_metrics_spdf@data$unemployed/(unemployment_vec/division_vec)
-
-
-
-############# Keeping only San Jose Census Tracts - need_metrics_spdf #########
-
-# sj = tigris::places('CA') %>% sp::spTransform(need_metrics_spdf@proj4string)
-# sj = sj[sj@data$NAME == 'San Jose',]
-
-# saveRDS(sj, 'RDS files/sj_shapefile.rds')
-
-#identifying all of the tracts which intersect with or are within san jose
-# tract_city_matrix = matrix(data = 0, nrow = nrow(full_spdf@data), ncol = 1)
-# rownames(tract_city_matrix) = need_metrics_spdf@data$GEOID
-# colnames(tract_city_matrix) = seq_along(sj@polygons)
-
-need_metrics_spdf = need_metrics_spdf[which(gIntersects(sj, need_metrics_spdf, byid = TRUE)),]
-
-######### Min-Max Scaling all of the variables - need_metrics_spdf ##########
-
-#given a vector, min-max scales it.
-min_max_vec = function(vec, ...){
-  return((vec - min(vec, ...))/(max(vec,...)-min(vec,...)))
-}
-
-#minmax scaling all of the metrics
-for(n in 4 : ncol(need_metrics_spdf@data)){
-  need_metrics_spdf@data[,n] = min_max_vec(need_metrics_spdf@data[,n])
-}
-
-
-
-############### Saving need_metrics_spdf - 'need metrics all minmax scaled data.rds' ############
-
-saveRDS(need_metrics_spdf, 'RDS files/need metrics all minmax scaled data.rds')
-
-
-
-
-
-
-
-
-
+# for(n in 2:ncol(crime_by_tract)){
+#   crime_by_tract[,n] = count_tract_appearance(geoid_list = geoid_list, 
+#                                               subject_geoid = crime_data[crime_data$CATEGORY == colnames(crime_by_tract)[n] | 
+#                                                                            crime_data$OFFENSE_DESCRIPTION == colnames(crime_by_tract)[n],'geoid'])[,2]
+# }
+# 
+# colnames(crime_by_tract) = c('GEOID', crimes[,2])
+# 
+# #Sanity check --> the above works, and quickly.
+# #print(crime_data[crime_data$geoid == '06085502907',c('CATEGORY', 'OFFENSE_DESCRIPTION')] %>% arrange(CATEGORY, OFFENSE_DESCRIPTION))
+# 
+# 
+# full_spdf@data = merge(full_spdf@data, crime_by_tract, by = 'GEOID')
+# 
+# 
+# ############ SSCI Incident Data - incident_counts, full_spdf ##########
+# 
+# school_bounds = readRDS('RDS files/school_bounds_for_16-18_IRs.rds') %>% sp::spTransform(full_spdf@proj4string)
+# ssci_incidents = ssci_incidents_full %>% dplyr::filter(level %in% INCLUDED_LEVELS) %>%
+#   select(date, school, level) %>%
+#   filter(date > START_DATE, date < END_DATE) %>% select(-date)
+# 
+# ssci = stats::aggregate(ssci_incidents$level, by = list(ssci_incidents$school), FUN = sum)
+# ssci_bounds = school_bounds[school_bounds$OBJECTID %in% ssci$Group.1,]
+# 
+# intersect_matrix = matrix(data = 0, nrow = nrow(ssci_bounds@data), ncol = nrow(full_spdf@data))
+# colnames(intersect_matrix) = full_spdf@data$GEOID
+# rownames(intersect_matrix) = ssci_bounds@data$OBJECTID
+# 
+# 
+# #Let's just attempt to identify the tracts that a single district is in.
+# # one_dis = list(school_bounds@polygons[[1]]) %>% sp::SpatialPolygons(proj4string =  full_spdf@proj4string)
+# for(school_ind in seq_along(ssci_bounds@polygons)){
+#   intersect_matrix[school_ind,which(rgeos::gIntersects(school_bounds[school_ind,], full_spdf, byid = TRUE))] = 1
+# }
+# #Now we have a matrix which marks every tract that is in every school boundary as 1.
+# 
+# incident_counts = data.frame(GEOID = colnames(intersect_matrix), ssci_incidents = as.numeric(colSums(intersect_matrix)))
+# 
+# full_spdf@data = merge(full_spdf@data, incident_counts, by = 'GEOID')
+# 
+# 
+# 
+# ########### Neibor Matrix - loc_dist_matrix ###########
+# # 1/x_ij where x is number of blocks between block i and j (starting at 1), 0 if more than MAX_BLOCK_DIST away 
+# MAX_LOC_DIST = 1
+# loc_it = 1
+# 
+# #initializing the matrix
+# loc_dist_matrix = matrix(0, nrow = nrow(full_spdf@data), ncol = nrow(full_spdf@data))
+# loc_matrix = gTouches(full_spdf, byid = TRUE)
+# 
+# 
+# 
+# #iterates through all blocks of 1 - MAX_BLOCK_DIST away, identifies which iteration it was picked up, and marks that number into matrix
+# #this will likely take hours, so we are going to run it overnight. Let's transfer this r code and the census df to our local machine.
+# for(loc_it_count in loc_it : ncol(loc_dist_matrix)){
+#   layer_locs = loc_it_count
+#   marked_locs = loc_it_count
+#   for(its in 1  : MAX_LOC_DIST){
+#     if(length(layer_locs) > 1){
+#       layer_locs_vec = which(rowSums(loc_matrix[,layer_locs])>0)
+#       
+#     }else{
+#       layer_locs_vec = which(loc_matrix[,layer_locs])
+#     }
+#     layer_locs_vec = layer_locs_vec[which(!(layer_locs_vec %in% marked_locs))]
+#     loc_dist_matrix[layer_locs_vec,loc_it_count] = its
+#     layer_locs = layer_locs_vec
+#     marked_locs = c(marked_locs, layer_locs)
+#   }
+#   # if(loc_it_count %% 50 == 0) print(loc_it_count)
+#   
+# }
+# # saveRDS(block_dist_matrix, 'RDS files/block_dist_matrix.rds')
+# # saveRDS(block, 'RDS files/current_block_it.rds')
+# # saveRDS(block_matrix, 'RDS files/block_matrix_t_f.rds')
+# #checking to make sure the above works - it seems to work.
+# # plot(full_spdf[loc_dist_matrix[,200] > 0 & loc_dist_matrix[,200] < 3,])
+# 
+# colnames(loc_dist_matrix) = full_spdf@data$GEOID
+# rownames(loc_dist_matrix) = full_spdf@data$GEOID
+# 
+# 
+# # loc_dist_matrix = 1/loc_dist_matrix
+# 
+# # loc_dist_matrix[loc_dist_matrix > 1] = 0
+# 
+# 
+# 
+# ############# That's all the data. #############
+# 
+# 
+# ############# Handling data operations and dropping certain data - need_metrics_spdf #############
+# 
+# 
+# 
+# columns_to_convert_to_percentages_of_total_population = 
+#   c('unemployed', 'not_in_labor_force', 'below_poverty_line', 
+#     'no_diploma_18_24_male', 'no_diploma_18_24_female', 'under_18_pop', 'under_18_with_disability', 'single_mothers',
+#     'no_diploma_25_64', 'family_in_poverty', 'entered_2010_later', 'foreign_born', 'disability_under_18',
+#     'income_under_poverty_line', 'Poverty_6_and_younger', 'Poverty_6_11', 'Poverty_12_17',
+#     crimes[,2], 'ssci_incidents')
+# 
+# #calculating ethnic diversity index (edi)
+# race_cols = c('white', 'black', 'asian', 
+# 'hispanic', 'amiakn', 'hawaiipi', 'other_races', 'two_or_more_races')
+# 
+# #calculating diversity index - 
+# num_races = length(race_cols)
+# total_race_pops = rowSums(full_spdf@data[,race_cols])
+# race_fractions = full_spdf@data[,race_cols] / total_race_pops
+# race_fractions_reduced = (race_fractions - (1/num_races))^2 #this works element-wise, so it works as we want it to.
+# d_8 = sqrt(rowSums(race_fractions_reduced))
+# c1 = 100
+# c2 = -100*sqrt(num_races*(num_races-1))/(num_races - 1)
+# edi = c1 + (c2*d_8)
+# 
+# #works
+# # print(edi[1:6])
+# # print(full_spdf@data[1:6, race_cols])
+# 
+# #Turning all of the census and crime data into percentages of total population
+# full_spdf@data[,columns_to_convert_to_percentages_of_total_population] = 
+#   full_spdf@data[,columns_to_convert_to_percentages_of_total_population]/full_spdf@data$total_pop
+# 
+# full_spdf@data$edi = edi
+# 
+# #creating the "youth in poverty" variable
+# full_spdf$youth_in_poverty = full_spdf$Poverty_6_and_younger + full_spdf$Poverty_6_11 + full_spdf$Poverty_12_17
+# #creating a variable for all 18-24 yo without a high school diploma
+# full_spdf$no_diploma_18_24 = full_spdf$no_diploma_18_24_female + full_spdf$no_diploma_18_24_male
+# 
+# 
+# need_metrics_spdf = full_spdf
+# need_metrics_spdf@data = need_metrics_spdf@data[,-which(colnames(need_metrics_spdf@data) %in% c('ALAND', 'overobese_teen',
+#                                                     'overobese_child', 'OBJECTID',
+#                                                     'tract', race_cols, 'Poverty_12_17',
+#                                                     'Poverty_6_11', 'Poverty_6_and_younger',
+#                                                     'no_diploma_18_24_male',
+#                                                     'no_diploma_18_24_female',
+#                                                     'under_18_pop',
+#                                                     'sampled_pop', 'neibid'))]
+# 
+# 
+# 
+# ########## Calculating Concentrated Economic Disadvantage ###########
+# 
+# #relative poverty
+# poverty_vec = loc_dist_matrix %*% need_metrics_spdf@data$below_poverty_line
+# division_vec = loc_dist_matrix %*% rep(1, nrow(loc_dist_matrix))
+# need_metrics_spdf@data$rel_poverty = need_metrics_spdf@data$below_poverty_line/(poverty_vec/division_vec)
+# 
+# #relative unemployment
+# unemployment_vec = loc_dist_matrix %*% need_metrics_spdf@data$unemployed
+# need_metrics_spdf@data$rel_unemployment = need_metrics_spdf@data$unemployed/(unemployment_vec/division_vec)
+# 
+# 
+# 
+# ############# Keeping only San Jose Census Tracts - need_metrics_spdf #########
+# 
+# # sj = tigris::places('CA') %>% sp::spTransform(need_metrics_spdf@proj4string)
+# # sj = sj[sj@data$NAME == 'San Jose',]
+# 
+# # saveRDS(sj, 'RDS files/sj_shapefile.rds')
+# 
+# #identifying all of the tracts which intersect with or are within san jose
+# # tract_city_matrix = matrix(data = 0, nrow = nrow(full_spdf@data), ncol = 1)
+# # rownames(tract_city_matrix) = need_metrics_spdf@data$GEOID
+# # colnames(tract_city_matrix) = seq_along(sj@polygons)
+# 
+# need_metrics_spdf = need_metrics_spdf[which(gIntersects(sj, need_metrics_spdf, byid = TRUE)),]
+# 
+# ######### Min-Max Scaling all of the variables - need_metrics_spdf ##########
+# 
+# #given a vector, min-max scales it.
+# min_max_vec = function(vec, ...){
+#   return((vec - min(vec, ...))/(max(vec,...)-min(vec,...)))
+# }
+# 
+# #minmax scaling all of the metrics
+# for(n in 4 : ncol(need_metrics_spdf@data)){
+#   need_metrics_spdf@data[,n] = min_max_vec(need_metrics_spdf@data[,n])
+# }
+# 
+# 
+# 
+# ############### Saving need_metrics_spdf - 'need metrics all minmax scaled data.rds' ############
+# 
+# saveRDS(need_metrics_spdf, 'RDS files/need metrics all minmax scaled data.rds')
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 

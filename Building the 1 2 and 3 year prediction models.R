@@ -63,9 +63,9 @@ days_forward = years_forward*DAYS_IN_YEAR
 
 SQUARE_METER_TO_SQUARE_MILE = 3.86102E-7
 INCLUDED_LEVELS = c(1)
-ACS_YEAR = 2016
+ACS_YEAR = 2017
 ACS_START_YEAR = 2013
-ACS_END_YEAR = 2016
+ACS_END_YEAR = 2017
 
 start_week_range = seq.Date(START_DATE_FULL, (END_DATE_FULL-DAYS_FORWARD), by = 'week')
 end_week_range = start_week_range + DAYS_FORWARD
@@ -86,7 +86,7 @@ loc_dist_matrix = readRDS('RDS files/Santa Clara County Tract 1 Neighbor Matrix.
 
 full_spdf_backup = readRDS('RDS files/Metrics without time dependency.rds')
 
-acs_list = readRDS('RDS files/acs_list_2013_2016.rds')
+acs_list = readRDS('RDS files/acs_list_2013_2017.rds')
 
 graf_backup = readRDS('RDS files/Full Graffiti Data.rds')
 
@@ -226,7 +226,11 @@ for(week_ind in seq_along(start_week_range)){
   crime_by_tract[,ncol(crime_by_tract)] = count_tract_appearance(geoid_list = geoid_list,
                                                                  subject_geoid = crime_data[crime_data$STUDY_FLAG %in% gang_labels | crime_data$GANG_INV %in% gang_labels,'geoid'])[,2]
   
-  colnames(crime_by_tract) = c('GEOID', crimes[,2])
+  crime_by_tract$c_total_crime = count_tract_appearance(geoid_list = geoid_list,
+                                                        subject_geoid = crime_data[,'geoid'])[,2]
+  
+  
+  colnames(crime_by_tract) = c('GEOID', c(crimes[,2], 'c_total_crime'))
   #Sanity check --> the above works, and quickly.
   #print(crime_data[crime_data$geoid == '06085502907',c('CATEGORY', 'OFFENSE_DESCRIPTION')] %>% arrange(CATEGORY, OFFENSE_DESCRIPTION))
   
@@ -375,7 +379,7 @@ for(week_ind in seq_along(start_week_range)){
       'no_diploma_18_24_male', 'no_diploma_18_24_female', 'under_18_pop', 'single_mothers',
       'no_diploma_25_64', 'family_in_poverty', 'entered_2010_later', 'foreign_born', 'disability_under_18',
       'income_under_poverty_line', 'Poverty_6_and_younger', 'Poverty_6_11', 'Poverty_12_17',
-      crimes[,2], 'ssci_incidents', 'graf_incidents')
+      colnames(crime_by_tract)[-1], 'ssci_incidents', 'graf_incidents')
   
   #calculating ethnic diversity index (edi)
   race_cols = c('white', 'black', 'asian', 
@@ -680,7 +684,7 @@ neib_matrix$GEOID = big_dat$GEOID
 
 sj_dist_matrix = loc_dist_matrix[rownames(loc_dist_matrix) %in% neib_matrix$GEOID, colnames(loc_dist_matrix) %in% neib_matrix$GEOID]
 
-identical(rownames(sj_dist_matrix), neib_matrix$GEOID[1:(first_geoid_inds[2] - 1)])#check. They are in the same order
+# identical(rownames(sj_dist_matrix), neib_matrix$GEOID[1:(first_geoid_inds[2] - 1)])#check. They are in the same order
 
 #given a vector of length n and the n by n neighbor matrix, returns a vector of n length of the averaged value for each GEOID's neibs on that var
 get_neib_average_vec = function(vec, sj_dist_matrix){
@@ -753,18 +757,19 @@ for(dep_var in dep_vars){
 ## runs a random forest algorithm to predict, and prints out the prediction success on a test/holdout set 
 ## and returns the model, which then can be saved
 ############################# - set_up_dat_for_model and run_model ##########
-set_up_dat_for_model = function(big_dat, dep_dat, dep_var){
+set_up_dat_for_model = function(big_dat, dep_dat, dep_var, metric_list){
   if(identical(dep_dat$GEOID, big_dat$GEOID) & #GEOIDs are in the same order
      identical((dep_dat$start_date), big_dat$start_date)){ #you can actually just cbind them.
-    model_dat = data.frame(big_dat[,-which(colnames(big_dat) %in% c('GEOID', 'start_date', 'end_date'))], dep_var = dep_dat[,dep_var])
+    
+    model_dat = data.frame(big_dat[,which(colnames(big_dat) %in% metric_list)], dep_var = dep_dat[,dep_var])
     model_dat = model_dat[!is.na(model_dat$dep_var),]
     return(model_dat)
   }else{message('dep_dat and big_dat did not match up for some reason. Check yourself')
     return(NULL)}
 }
 
-run_model = function(big_dat, dep_dat, dep_var){
-  model_dat = set_up_dat_for_model(big_dat, dep_dat, dep_var)
+run_model = function(big_dat, dep_dat, dep_var, metric_list){
+  model_dat = set_up_dat_for_model(big_dat, dep_dat, dep_var, metric_list)
   install_and_load('randomForest')
   install_and_load('tree')
   set.seed(95116)
@@ -789,11 +794,27 @@ run_model = function(big_dat, dep_dat, dep_var){
 
 all_dep_vars = colnames(dep_dat)[-(1:2)]
 
+source('Metric Definitions.R')
+all_metrics = get_all_metrics()
+
 #saving all models into a model directory
 start_wd = getwd()
 setwd('models')
 for(dep_var in all_dep_vars){
-  model.rf = run_model(big_dat, dep_dat, dep_var)
+  dep_var_interest_name = gsub('_[0-9]+[[:print:]]*', '', dep_var)
+  metric_list = NA
+  for(n in seq_along(all_metrics)){
+    if(grepl(dep_var_interest_name, all_metrics[[n]][[1]])){
+      metric_list = grep(c(paste0('^', all_metrics[[n]][[1]]), all_metrics[[n]][[3]][,1]) %>% 
+                           paste(sep = '|', collapse = '$|^') %>% paste0('$') %>% 
+                           c(.,gsub('\\^', '\\^neib_avg_',.)) %>% paste(collapse = '|'), colnames(big_dat), value = TRUE)
+    }
+  } #this collects the names of the ind vars to use for the model. 
+  if(is.na(metric_list[1])){
+    warning(paste0('no metric_list created. Check yourself on dep_var == ', dep_var))
+    next
+  } #in case no ind vars were found, skips this model and goes to the next dep_var.
+  model.rf = run_model(big_dat, dep_dat, dep_var, metric_list)
   saveRDS(model.rf, paste0('model_rf_',dep_var,'.rds'))
 }  
 setwd(start_wd)

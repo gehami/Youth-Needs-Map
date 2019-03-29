@@ -6,6 +6,31 @@
 # 
 #    http://shiny.rstudio.com/
 #
+######### Standard Functions ##########
+# setwd('Final_app_deliverable')
+
+sample_dat = function(dat, rows = 10){
+  return(dat[sample(1:nrow(dat), rows),])
+}
+
+install_and_load = function(library){
+  if(!is.character(library)){
+    message("Please type library name as a character value")
+    return(NULL)
+  }
+  if(!require(library, character.only = T)){
+    install.packages(library)
+    require(library, character.only = T)
+  }
+  return(NULL)
+}
+########## Libraries ###########
+
+install_and_load('shiny')
+install_and_load('shinyBS')
+install_and_load('DT')
+install_and_load('leaflet')
+install_and_load('Hmisc')
 
 # install.packages('shinyjs')
 # install.packages('Hmisc')
@@ -47,7 +72,7 @@ shinyUI(
     includeScript('js/update_sliders.js'),
     # Removes spin wheels from inputs - shout out to wolfpack on https://community.rstudio.com/t/how-to-remove-numeric-inputs-spin-button-in-r-shiny/13769/2
     tags$style(HTML("
-                input[type=number] {
+                    input[type=number] {
                     -moz-appearance:textfield;
                     }
                     input[type=number]::{
@@ -59,254 +84,254 @@ shinyUI(
                     margin: 0;
                     }
                     ")),
-  
-  # Application title
-  titlePanel(
-    list(h1("Violence Risk Factors Map"),
-    h5("An editable map of the risk factors for youth and gang violence."),
-    h5("Toggle the metrics below to identify neighborhoods with specific risk factors."))
-    ),
-  
-  ###### Sliders ##########
-  bsCollapse(id = 'Sliders',
-             bsCollapsePanel('Click here to edit map metrics',
-                             fluidRow(
-                               column(12,
-                                      tabsetPanel(
-                                        type = 'tabs',
-                                        ######## Gang Presence ###########
-                                        tabPanel('Gang Presence',
-                                                 br(),
-                                                 fluidRow(column(4, actionButton('gang_presence_map', 'Update and Show Map')),
-                                                          column(4, actionButton('gp_reset_weights', 'Reset Metrics')),
-                                                          column(4,'')),#actionButton('gp_predict', 'Predict'))),
-                                                 fluidRow(
-                                                   column(4, h3('Gang Affiliated Crime')),
-                                                   column(4, h3('Child Maltreatment')),
-                                                   column(4, h3('Developmental Trauma'))
-                                                 ),
-                                                 fluidRow(
-                                                   column(3, sliderInput(inputId = 'gang_affiliated_crime', label = NULL, 
-                                                                         min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                                                         value = START_VALUE)),
-                                                   column(1, numericInput(inputId = 'gang_affiliated_crime_num', label = NULL,
-                                                                          value = START_VALUE, width = '100%')),
-                                                   column(3, sliderInput(inputId = 'child_maltreatment', label = NULL, 
-                                                                         min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                                                         value = START_VALUE)),
-                                                   column(1, numericInput(inputId = 'child_maltreatment_num', label = NULL,
-                                                                          value = START_VALUE)),
-                                                   column(3, sliderInput(inputId = 'developmental_trauma', label = NULL, 
-                                                                         min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                                                         value = START_VALUE)),
-                                                   column(1, numericInput(inputId = 'developmental_trauma_num', label = NULL,
-                                                                          value = START_VALUE))
-                                                   
-                                                 ),
-                                                 fluidRow(
-                                                   column(4, h3('Violent and Prejudiced Victimization')),
-                                                   column(4, h3('Disorder in Neighborhood')),
-                                                   column(4, h3('Presence of Firearms'))
-                                                 ),
-                                                 fluidRow(
-                                                   column(3, sliderInput(inputId = 'violent_prejudice_victimization', label = NULL, 
-                                                                         min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                                                         value = START_VALUE)),
-                                                   column(1, numericInput(inputId = 'violent_prejudice_victimization_num', label = NULL,
-                                                                          value = START_VALUE, width = '100%')),
-                                                   column(3, sliderInput(inputId = 'disorder_in_neighborhood', label = NULL, 
-                                                                         min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                                                         value = START_VALUE)),
-                                                   column(1, numericInput(inputId = 'disorder_in_neighborhood_num', label = NULL,
-                                                                          value = START_VALUE)),
-                                                   column(3, sliderInput(inputId = 'presence_of_firearms', label = NULL, 
-                                                                         min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                                                         value = START_VALUE)),
-                                                   column(1, numericInput(inputId = 'presence_of_firearms_num', label = NULL,
-                                                                          value = START_VALUE))
-                                                   
-                                                 ),
-                                                 fluidRow(
-                                                   column(4, h3('Youth School Conflicts')),
-                                                   column(4, h3('Youth with Disabilities')),
-                                                   column(4, h3('Economic Deprivation'))
-                                                 ),
-                                                 fluidRow(
-                                                   column(3, sliderInput(inputId = 'youth_school_conflicts', label = NULL, 
-                                                                         min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                                                         value = START_VALUE)),
-                                                   column(1, numericInput(inputId = 'youth_school_conflicts_num', label = NULL,
-                                                                          value = START_VALUE, width = '100%')),
-                                                   column(3, sliderInput(inputId = 'reported_disability', label = NULL, 
-                                                                         min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                                                         value = START_VALUE)),
-                                                   column(1, numericInput(inputId = 'reported_disability_num', label = NULL,
-                                                                          value = START_VALUE)),
-                                                   column(3, sliderInput(inputId = 'economic_deprivation', label = NULL, 
-                                                                         min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                                                         value = START_VALUE)),
-                                                   column(1, numericInput(inputId = 'economic_deprivation_num', label = NULL,
-                                                                          value = START_VALUE))
-                                                   
-                                                 ),
-                                                 fluidRow(
-                                                   column(4, h3('Substance Abuse')),
-                                                   column(4, h3('Graffiti')),
-                                                   column(4, h3(''))
-                                                 ),
-                                                 fluidRow(
-                                                   column(3, sliderInput(inputId = 'substance_abuse', label = NULL, 
-                                                                         min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                                                         value = START_VALUE)),
-                                                   column(1, numericInput(inputId = 'substance_abuse_num', label = NULL,
-                                                                          value = START_VALUE, width = '100%')),
-                                                   column(3, sliderInput(inputId = 'graffiti', label = NULL, 
-                                                                         min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                                                         value = START_VALUE)),
-                                                   column(1, numericInput(inputId = 'graffiti_num', label = NULL,
-                                                                          value = START_VALUE, width = '100%')),
-                                                   column(3),
-                                                   column(1)
-                                                   
-                                                 )
-                                                 
-                                        )#,
-                                       #  #######  Vocational Training ##############
-                                       #  tabPanel('Vocational Training', 
-                                       #           br(),
-                                       #           fluidRow(column(4, actionButton('vocational_training_map', 'Update and Show Map')),
-                                       #                    column(4, actionButton('vocational_reset_weights', 'Reset Metrics')),
-                                       #                    column(4, '')),#actionButton('vocational_predict', 'Predict'))),
-                                       #           fluidRow(
-                                       #             column(4, h3('Joblessness')),
-                                       #             column(4, h3('Poverty in Community')),
-                                       #             column(4, h3('Concentrated Disadvantage'))
-                                       #           ),
-                                       #           fluidRow(
-                                       #             column(3, sliderInput(inputId = 'joblessness', label = NULL, 
-                                       #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                       #                                   value = START_VALUE)),
-                                       #             column(1, numericInput(inputId = 'joblessness_num', label = NULL,
-                                       #                                    value = START_VALUE, width = '100%')),
-                                       #             column(3, sliderInput(inputId = 'poverty_in_community', label = NULL, 
-                                       #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                       #                                   value = START_VALUE)),
-                                       #             column(1, numericInput(inputId = 'poverty_in_community_num', label = NULL,
-                                       #                                    value = START_VALUE)),
-                                       #             column(3, sliderInput(inputId = 'concentrated_disadvantage', label = NULL, 
-                                       #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                       #                                   value = START_VALUE)),
-                                       #             column(1, numericInput(inputId = 'concentrated_disadvantage_num', label = NULL,
-                                       #                                    value = START_VALUE))
-                                       #             
-                                       #           ),
-                                       #           fluidRow(
-                                       #             column(4, h3('Education Completion')),
-                                       #             column(4, h3('Illegal Economic Activity')),
-                                       #             column(4, h3(''))
-                                       #           ),
-                                       #           fluidRow(
-                                       #             column(3, sliderInput(inputId = 'edu_completion', label = NULL, 
-                                       #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                       #                                   value = START_VALUE)),
-                                       #             column(1, numericInput(inputId = 'edu_completion_num', label = NULL,
-                                       #                                    value = START_VALUE, width = '100%')),
-                                       #             column(3, sliderInput(inputId = 'illegal_econ_activity', label = NULL, 
-                                       #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                       #                                   value = START_VALUE)),
-                                       #             column(1, numericInput(inputId = 'illegal_econ_activity_num', label = NULL,
-                                       #                                    value = START_VALUE)),
-                                       #             column(3),
-                                       #             column(1)
-                                       #             
-                                       #           )),
-                                       # ########## Parent Awareness ##########
-                                       #  tabPanel('Parent Awareness', 
-                                       #           br(),
-                                       #           fluidRow(column(4, actionButton('parent_awareness_map', 'Update and Show Map')),
-                                       #                    column(4, actionButton('parent_reset_weights', 'Reset Metrics')),
-                                       #                    column(4, '')),#actionButton('parent_predict', 'Predict'))),
-                                       #           fluidRow(
-                                       #             column(4, h3('Child Maltreatment')),
-                                       #             column(4, h3('Single Mothers')),
-                                       #             column(4, h3('Teen Mothers'))
-                                       #           ),
-                                       #           fluidRow(
-                                       #             column(3, sliderInput(inputId = 'child_maltreatment_pa', label = NULL,
-                                       #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                       #                                   value = START_VALUE)),
-                                       #             column(1, numericInput(inputId = 'child_maltreatment_pa_num', label = NULL,
-                                       #                                    value = START_VALUE, width = '100%')),
-                                       #             column(3, sliderInput(inputId = 'prop_single_mothers', label = NULL,
-                                       #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                       #                                   value = START_VALUE)),
-                                       #             column(1, numericInput(inputId = 'prop_single_mothers_num', label = NULL,
-                                       #                                    value = START_VALUE)),
-                                       #             column(3, sliderInput(inputId = 'teen_mothers', label = NULL,
-                                       #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                       #                                   value = START_VALUE)),
-                                       #             column(1, numericInput(inputId = 'teen_mothers_num', label = NULL,
-                                       #                                    value = START_VALUE))
-                                       #             
-                                       #           ),
-                                       #           fluidRow(
-                                       #             column(4, h3('Families in Poverty')),
-                                       #             column(4, h3('Families Unaware of Community')),
-                                       #             column(4, h3('Drug Abuse'))
-                                       #           ),
-                                       #           fluidRow(
-                                       #             column(3, sliderInput(inputId = 'families_in_poverty', label = NULL,
-                                       #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                       #                                   value = START_VALUE)),
-                                       #             column(1, numericInput(inputId = 'families_in_poverty_num', label = NULL,
-                                       #                                    value = START_VALUE, width = '100%')),
-                                       #             column(3, sliderInput(inputId = 'families_unaware_of_community', label = NULL,
-                                       #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                       #                                   value = START_VALUE)),
-                                       #             column(1, numericInput(inputId = 'families_unaware_of_community_num', label = NULL,
-                                       #                                    value = START_VALUE)),
-                                       #             column(3, sliderInput(inputId = 'drug_abuse', label = NULL,
-                                       #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
-                                       #                                   value = START_VALUE)),
-                                       #             column(1, numericInput(inputId = 'drug_abuse_num', label = NULL,
-                                       #                                    value = START_VALUE))
-                                       #             
-                                       #           ))
-                                        ######## Ending Sliders ########
-                                      ))), style = "info"
-             )
-             ),
-  
-    ######### Done with Sliders ##########
-  ######## Sidebar #########
-  # Sidebar with a slider input for number of bins 
-  sidebarLayout(
-    sidebarPanel(
-    #   h2(textOutput('metric_focus')),
-    #   tabsetPanel(
-    #     id = 'data_tables',
-    #     tabPanel('2013', DT::dataTableOutput('dt_2013')),
-    #     tabPanel('2014', DT::dataTableOutput('dt_2014')),
-    #     tabPanel('2015', DT::dataTableOutput('dt_2015')),
-    #     tabPanel('2016', DT::dataTableOutput('dt_2016')),
-    #     tabPanel('2017', DT::dataTableOutput('dt_2017')),
-    #     tabPanel('2018', DT::dataTableOutput('dt_2018')),
-    #     selected = '2018'
-    #   )
-      h3('Instructions:'),
-      h6('On this map you can alter the metrics to focus more or less on certain data.'),
-      h6('Click above to edit the map metrics.'),
-      h6('It will drop down a set of sliders which you can toggle to weight certain factors more or less.'),
-      h6('Click "Update and Show Map" to show the updated map.'),
-      h6('To focus on a single metric, turn all other metrics to 0.'),
-      h6('To reset the metrics to all be equal, click "Reset Metrics."'),
-      # h6('To watch a tutorial, click here'),
-      h6("A product of San Jose Parks, Recreation, and Neighborhood Serives, with help from the City of San Jose.")
+    
+    # Application title
+    titlePanel(
+      list(h1("Violence Risk Factors Map"),
+           h5("An editable map of the risk factors for youth and gang violence."),
+           h5("Toggle the metrics below to identify neighborhoods with specific risk factors."))
     ),
     
-    # Show a plot of the generated distribution
-    mainPanel(
-       leafletOutput('need_map', width = '100%', height = '800px')
+    ###### Sliders ##########
+    bsCollapse(id = 'Sliders',
+               bsCollapsePanel('Click here to edit map metrics',
+                               fluidRow(
+                                 column(12,
+                                        tabsetPanel(
+                                          type = 'tabs',
+                                          ######## Gang Presence ###########
+                                          tabPanel('Gang Presence',
+                                                   br(),
+                                                   fluidRow(column(4, actionButton('gang_presence_map', 'Update and Show Map')),
+                                                            column(4, actionButton('gp_reset_weights', 'Reset Metrics')),
+                                                            column(4,'')),#actionButton('gp_predict', 'Predict'))),
+                                                   fluidRow(
+                                                     column(4, h3('Gang Affiliated Crime')),
+                                                     column(4, h3('Child Maltreatment')),
+                                                     column(4, h3('Developmental Trauma'))
+                                                   ),
+                                                   fluidRow(
+                                                     column(3, sliderInput(inputId = 'gang_affiliated_crime', label = NULL, 
+                                                                           min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                                                           value = START_VALUE)),
+                                                     column(1, numericInput(inputId = 'gang_affiliated_crime_num', label = NULL,
+                                                                            value = START_VALUE, width = '100%')),
+                                                     column(3, sliderInput(inputId = 'child_maltreatment', label = NULL, 
+                                                                           min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                                                           value = START_VALUE)),
+                                                     column(1, numericInput(inputId = 'child_maltreatment_num', label = NULL,
+                                                                            value = START_VALUE)),
+                                                     column(3, sliderInput(inputId = 'developmental_trauma', label = NULL, 
+                                                                           min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                                                           value = START_VALUE)),
+                                                     column(1, numericInput(inputId = 'developmental_trauma_num', label = NULL,
+                                                                            value = START_VALUE))
+                                                     
+                                                   ),
+                                                   fluidRow(
+                                                     column(4, h3('Exposure to Violence and Racial Prejudice')),
+                                                     column(4, h3('Community Disorganization')),
+                                                     column(4, h3('Presence of Firearms'))
+                                                   ),
+                                                   fluidRow(
+                                                     column(3, sliderInput(inputId = 'violent_prejudice_victimization', label = NULL, 
+                                                                           min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                                                           value = START_VALUE)),
+                                                     column(1, numericInput(inputId = 'violent_prejudice_victimization_num', label = NULL,
+                                                                            value = START_VALUE, width = '100%')),
+                                                     column(3, sliderInput(inputId = 'disorder_in_neighborhood', label = NULL, 
+                                                                           min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                                                           value = START_VALUE)),
+                                                     column(1, numericInput(inputId = 'disorder_in_neighborhood_num', label = NULL,
+                                                                            value = START_VALUE)),
+                                                     column(3, sliderInput(inputId = 'presence_of_firearms', label = NULL, 
+                                                                           min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                                                           value = START_VALUE)),
+                                                     column(1, numericInput(inputId = 'presence_of_firearms_num', label = NULL,
+                                                                            value = START_VALUE))
+                                                     
+                                                   ),
+                                                   fluidRow(
+                                                     column(4, h3('School Violence and Low Graduation')),
+                                                     column(4, h3('Youth with Disabilities')),
+                                                     column(4, h3('Poverty'))
+                                                   ),
+                                                   fluidRow(
+                                                     column(3, sliderInput(inputId = 'youth_school_conflicts', label = NULL, 
+                                                                           min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                                                           value = START_VALUE)),
+                                                     column(1, numericInput(inputId = 'youth_school_conflicts_num', label = NULL,
+                                                                            value = START_VALUE, width = '100%')),
+                                                     column(3, sliderInput(inputId = 'reported_disability', label = NULL, 
+                                                                           min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                                                           value = START_VALUE)),
+                                                     column(1, numericInput(inputId = 'reported_disability_num', label = NULL,
+                                                                            value = START_VALUE)),
+                                                     column(3, sliderInput(inputId = 'economic_deprivation', label = NULL, 
+                                                                           min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                                                           value = START_VALUE)),
+                                                     column(1, numericInput(inputId = 'economic_deprivation_num', label = NULL,
+                                                                            value = START_VALUE))
+                                                     
+                                                   ),
+                                                   fluidRow(
+                                                     column(4, h3('Substance Abuse')),
+                                                     column(4, h3('Graffiti')),
+                                                     column(4, h3(''))
+                                                   ),
+                                                   fluidRow(
+                                                     column(3, sliderInput(inputId = 'substance_abuse', label = NULL, 
+                                                                           min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                                                           value = START_VALUE)),
+                                                     column(1, numericInput(inputId = 'substance_abuse_num', label = NULL,
+                                                                            value = START_VALUE, width = '100%')),
+                                                     column(3, sliderInput(inputId = 'graffiti', label = NULL, 
+                                                                           min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                                                           value = START_VALUE)),
+                                                     column(1, numericInput(inputId = 'graffiti_num', label = NULL,
+                                                                            value = START_VALUE, width = '100%')),
+                                                     column(3),
+                                                     column(1)
+                                                     
+                                                   )
+                                                   
+                                          )#,
+                                          #  #######  Vocational Training ##############
+                                          #  tabPanel('Vocational Training', 
+                                          #           br(),
+                                          #           fluidRow(column(4, actionButton('vocational_training_map', 'Update and Show Map')),
+                                          #                    column(4, actionButton('vocational_reset_weights', 'Reset Metrics')),
+                                          #                    column(4, '')),#actionButton('vocational_predict', 'Predict'))),
+                                          #           fluidRow(
+                                          #             column(4, h3('Joblessness')),
+                                          #             column(4, h3('Poverty in Community')),
+                                          #             column(4, h3('Concentrated Disadvantage'))
+                                          #           ),
+                                          #           fluidRow(
+                                          #             column(3, sliderInput(inputId = 'joblessness', label = NULL, 
+                                          #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                          #                                   value = START_VALUE)),
+                                          #             column(1, numericInput(inputId = 'joblessness_num', label = NULL,
+                                          #                                    value = START_VALUE, width = '100%')),
+                                          #             column(3, sliderInput(inputId = 'poverty_in_community', label = NULL, 
+                                          #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                          #                                   value = START_VALUE)),
+                                          #             column(1, numericInput(inputId = 'poverty_in_community_num', label = NULL,
+                                          #                                    value = START_VALUE)),
+                                          #             column(3, sliderInput(inputId = 'concentrated_disadvantage', label = NULL, 
+                                          #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                          #                                   value = START_VALUE)),
+                                          #             column(1, numericInput(inputId = 'concentrated_disadvantage_num', label = NULL,
+                                          #                                    value = START_VALUE))
+                                          #             
+                                          #           ),
+                                          #           fluidRow(
+                                          #             column(4, h3('Education Completion')),
+                                          #             column(4, h3('Illegal Economic Activity')),
+                                          #             column(4, h3(''))
+                                          #           ),
+                                          #           fluidRow(
+                                          #             column(3, sliderInput(inputId = 'edu_completion', label = NULL, 
+                                          #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                          #                                   value = START_VALUE)),
+                                          #             column(1, numericInput(inputId = 'edu_completion_num', label = NULL,
+                                          #                                    value = START_VALUE, width = '100%')),
+                                          #             column(3, sliderInput(inputId = 'illegal_econ_activity', label = NULL, 
+                                          #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                          #                                   value = START_VALUE)),
+                                          #             column(1, numericInput(inputId = 'illegal_econ_activity_num', label = NULL,
+                                          #                                    value = START_VALUE)),
+                                          #             column(3),
+                                          #             column(1)
+                                          #             
+                                          #           )),
+                                          # ########## Parent Awareness ##########
+                                          #  tabPanel('Parent Awareness', 
+                                          #           br(),
+                                          #           fluidRow(column(4, actionButton('parent_awareness_map', 'Update and Show Map')),
+                                          #                    column(4, actionButton('parent_reset_weights', 'Reset Metrics')),
+                                          #                    column(4, '')),#actionButton('parent_predict', 'Predict'))),
+                                          #           fluidRow(
+                                          #             column(4, h3('Child Maltreatment')),
+                                          #             column(4, h3('Single Mothers')),
+                                          #             column(4, h3('Teen Mothers'))
+                                          #           ),
+                                          #           fluidRow(
+                                          #             column(3, sliderInput(inputId = 'child_maltreatment_pa', label = NULL,
+                                          #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                          #                                   value = START_VALUE)),
+                                          #             column(1, numericInput(inputId = 'child_maltreatment_pa_num', label = NULL,
+                                          #                                    value = START_VALUE, width = '100%')),
+                                          #             column(3, sliderInput(inputId = 'prop_single_mothers', label = NULL,
+                                          #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                          #                                   value = START_VALUE)),
+                                          #             column(1, numericInput(inputId = 'prop_single_mothers_num', label = NULL,
+                                          #                                    value = START_VALUE)),
+                                          #             column(3, sliderInput(inputId = 'teen_mothers', label = NULL,
+                                          #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                          #                                   value = START_VALUE)),
+                                          #             column(1, numericInput(inputId = 'teen_mothers_num', label = NULL,
+                                          #                                    value = START_VALUE))
+                                          #             
+                                          #           ),
+                                          #           fluidRow(
+                                          #             column(4, h3('Families in Poverty')),
+                                          #             column(4, h3('Families Unaware of Community')),
+                                          #             column(4, h3('Drug Abuse'))
+                                          #           ),
+                                          #           fluidRow(
+                                          #             column(3, sliderInput(inputId = 'families_in_poverty', label = NULL,
+                                          #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                          #                                   value = START_VALUE)),
+                                          #             column(1, numericInput(inputId = 'families_in_poverty_num', label = NULL,
+                                          #                                    value = START_VALUE, width = '100%')),
+                                          #             column(3, sliderInput(inputId = 'families_unaware_of_community', label = NULL,
+                                          #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                          #                                   value = START_VALUE)),
+                                          #             column(1, numericInput(inputId = 'families_unaware_of_community_num', label = NULL,
+                                          #                                    value = START_VALUE)),
+                                          #             column(3, sliderInput(inputId = 'drug_abuse', label = NULL,
+                                          #                                   min = MIN_INPUT, max = MAX_INPUT, step = STEP_SIZE,
+                                          #                                   value = START_VALUE)),
+                                          #             column(1, numericInput(inputId = 'drug_abuse_num', label = NULL,
+                                          #                                    value = START_VALUE))
+                                          #             
+                                          #           ))
+                                          ######## Ending Sliders ########
+                                        ))), style = "info"
+               )
+    ),
+    
+    ######### Done with Sliders ##########
+    ######## Sidebar #########
+    # Sidebar with a slider input for number of bins 
+    sidebarLayout(
+      sidebarPanel(
+        #   h2(textOutput('metric_focus')),
+        #   tabsetPanel(
+        #     id = 'data_tables',
+        #     tabPanel('2013', DT::dataTableOutput('dt_2013')),
+        #     tabPanel('2014', DT::dataTableOutput('dt_2014')),
+        #     tabPanel('2015', DT::dataTableOutput('dt_2015')),
+        #     tabPanel('2016', DT::dataTableOutput('dt_2016')),
+        #     tabPanel('2017', DT::dataTableOutput('dt_2017')),
+        #     tabPanel('2018', DT::dataTableOutput('dt_2018')),
+        #     selected = '2018'
+        #   )
+        h3('Instructions:'),
+        h6('On this map you can alter the metrics to focus more or less on certain data.'),
+        h6('Click above to edit the map metrics.'),
+        h6('It will drop down a set of sliders which you can toggle to weight certain factors more or less.'),
+        h6('Click "Update and Show Map" to show the updated map.'),
+        h6('To focus on a single metric, turn all other metrics to 0.'),
+        h6('To reset the metrics to all be equal, click "Reset Metrics."'),
+        # h6('To watch a tutorial, click here'),
+        h6("A product of San Jose Parks, Recreation, and Neighborhood Serives, with help from the City of San Jose.")
+      ),
+      
+      # Show a plot of the generated distribution
+      mainPanel(
+        leafletOutput('need_map', width = '100%', height = '800px')
+      )
     )
-  )
-))
+    ))

@@ -52,9 +52,9 @@ count_tract_appearance = function(geoid_list, subject_geoid){
 
 START_DATE_FULL = as.Date('2013-01-01')
 END_DATE_FULL = as.Date('2018-01-01')
-REAL_END_DATE = as.Date('2018-06-25')
+REAL_END_DATE = as.Date('2019-01-01')
 ACS_START_YEAR = 2013
-ACS_END_YEAR = 2016
+ACS_END_YEAR = 2017
 TOP_METRICS = 3 #number of top metrics to highlight for each tract
 SUBSTANCE_ABUSE_WEIGHT = 0.15 #when combining gang presence and substance abuse, the weighting of substnace abuse
 
@@ -90,7 +90,7 @@ neib_names_data = readRDS('RDS files/neighborhood names by census tract GEOID.rd
 
 graf_backup = readRDS('RDS files/Full Graffiti Data.rds')
 
-######### Reading in All census Data - acs_list############
+######### Reading in All census Data - acs_list ############
 install_and_load('tidyverse')
 install_and_load('tidycensus')
 
@@ -166,9 +166,9 @@ acs_vars =
 #   acs_list[[i]] = list(year, acs_dat)
 #   i = i + 1
 # }
-# 
-# saveRDS(acs_list, 'RDS files/acs_list_2013_2016.rds')
-acs_list = readRDS('RDS files/acs_list_2013_2016.rds')
+
+# saveRDS(acs_list, 'RDS files/acs_list_2013_2017.rds')
+acs_list = readRDS('RDS files/acs_list_2013_2017.rds')
 
 
 ########
@@ -288,8 +288,12 @@ for(year_ind in seq_along(start_year_range)){
   crime_by_tract[,ncol(crime_by_tract)] = count_tract_appearance(geoid_list = geoid_list,
                                                                  subject_geoid = crime_data[crime_data$STUDY_FLAG %in% gang_labels | crime_data$GANG_INV %in% gang_labels,'geoid'])[,2]
   
-  colnames(crime_by_tract) = c('GEOID', crimes[,2])
-    #Sanity check --> the above works, and quickly.
+  crime_by_tract$c_total_crime = count_tract_appearance(geoid_list = geoid_list,
+                                                        subject_geoid = crime_data[,'geoid'])[,2]
+  
+  
+  colnames(crime_by_tract) = c('GEOID', c(crimes[,2], 'c_total_crime'))
+  #Sanity check --> the above works, and quickly.
   #print(crime_data[crime_data$geoid == '06085502907',c('CATEGORY', 'OFFENSE_DESCRIPTION')] %>% arrange(CATEGORY, OFFENSE_DESCRIPTION))
   
   
@@ -397,7 +401,7 @@ for(year_ind in seq_along(start_year_range)){
       'no_diploma_18_24_male', 'no_diploma_18_24_female', 'under_18_pop', 'single_mothers',
       'no_diploma_25_64', 'family_in_poverty', 'entered_2010_later', 'foreign_born', 'disability_under_18',
       'income_under_poverty_line', 'Poverty_6_and_younger', 'Poverty_6_11', 'Poverty_12_17',
-      crimes[,2], 'ssci_incidents', 'graf_incidents')
+      colnames(crime_by_tract)[-1], 'ssci_incidents', 'graf_incidents')
   
   #calculating ethnic diversity index (edi)
   race_cols = c('white', 'black', 'asian', 

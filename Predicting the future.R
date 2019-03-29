@@ -55,7 +55,7 @@ days_forward = years_forward*DAYS_IN_YEAR
 
 SQUARE_METER_TO_SQUARE_MILE = 3.86102E-7
 INCLUDED_LEVELS = c(1)
-ACS_YEAR = 2016
+ACS_YEAR = 2017
 
 
 ######## Reading Constant Data #############
@@ -185,7 +185,11 @@ for(n in 2:(ncol(crime_by_tract) - 1)){
 crime_by_tract[,ncol(crime_by_tract)] = count_tract_appearance(geoid_list = geoid_list,
                                                                subject_geoid = crime_data[crime_data$STUDY_FLAG %in% gang_labels | crime_data$GANG_INV %in% gang_labels,'geoid'])[,2]
 
-colnames(crime_by_tract) = c('GEOID', crimes[,2])
+crime_by_tract$c_total_crime = count_tract_appearance(geoid_list = geoid_list,
+                                                      subject_geoid = crime_data[,'geoid'])[,2]
+
+
+colnames(crime_by_tract) = c('GEOID', c(crimes[,2], 'c_total_crime'))
 #Sanity check --> the above works, and quickly.
 #print(crime_data[crime_data$geoid == '06085502907',c('CATEGORY', 'OFFENSE_DESCRIPTION')] %>% arrange(CATEGORY, OFFENSE_DESCRIPTION))
 
@@ -339,7 +343,7 @@ columns_to_convert_to_percentages_of_total_population =
     'no_diploma_18_24_male', 'no_diploma_18_24_female', 'under_18_pop', 'single_mothers',
     'no_diploma_25_64', 'family_in_poverty', 'entered_2010_later', 'foreign_born', 'disability_under_18',
     'income_under_poverty_line', 'Poverty_6_and_younger', 'Poverty_6_11', 'Poverty_12_17',
-    crimes[,2], 'ssci_incidents', 'graf_incidents')
+    colnames(crime_by_tract)[-1], 'ssci_incidents', 'graf_incidents')
 
 #calculating ethnic diversity index (edi)
 race_cols = c('white', 'black', 'asian', 

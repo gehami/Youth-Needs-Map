@@ -37,7 +37,7 @@ install_and_load = function(library){
 #we need the github version of leaflet
 # if (!require('devtools')) install.packages('devtools')
 # devtools::install_github('rstudio/leaflet')
-library(leaflet)
+install_and_load('leaflet')
 library(stats)
 install_and_load('sp')
 install_and_load('htmltools')
@@ -137,6 +137,71 @@ saveRDS(raw_list, 'Final_app_deliverable/raw_list_cleaned.rds')
 
 
 
+############# adding data to hotspots - hotspot_15 and hotspot_17 ###########
+#for testing purposes
+# plot(hs$geometry, col = 'green')
+# plot(test$geometry, add = TRUE)
+# plot(int$geometry, add = TRUE, col = 'red')
+# 
+# big_list_spdf = big_list[[5]][[2]]
+# hotspot_spdf = hotspot_17_raw
+# 
+install_and_load('sf')
+install_and_load('tidyverse')
+install_and_load('lwgeom')
+install_and_load('doBy')
+
+add_metrics_to_hotspots = function(big_list_spdf, hotspot_spdf, gang_presence_cols, vocational_cols, parent_cols){
+  test = big_list_spdf %>% st_as_sf()
+  hs = st_as_sf(hotspot_spdf)
+  install_and_load('sf')
+  install_and_load('tidyverse')
+  install_and_load('lwgeom')
+  int = (st_intersection(test, st_make_valid(hs))) #%>% select(GEOID, hot_spot, hotspot_name, geometry)
+  int$area = as.numeric(st_area(int$geometry))
+  int = int[order(int$hot_spot),]
+  int_data = int
+  int_data$geometry = NULL
+  install_and_load('doBy')
+  int_data_only = int_data[,unique(c(gang_presence_cols, vocational_cols, parent_cols))]
+  int_data_only = int_data_only * int_data$area
+  # identical(as.numeric(int_data_only$GANG_PRESENCE), as.numeric(int_data$GANG_PRESENCE*int_data$area))#success
+  int_data_only = cbind(hot_spot = int_data$hot_spot, int_data_only)
+  test_hs = summaryBy(. ~ hot_spot, data = int_data_only, FUN = sum)
+  colnames(test_hs) = gsub('\\.sum','', colnames(test_hs))
+  total_area = summaryBy(area ~ hot_spot, data = int_data, FUN = sum)
+  test_hs[,unique(c(gang_presence_cols, vocational_cols, parent_cols))] = test_hs[,unique(c(gang_presence_cols, vocational_cols, parent_cols))] / total_area$area.sum
+  hotspot_spdf@data = merge(hotspot_spdf@data, test_hs, by = 'hot_spot')
+  return(hotspot_spdf)
+}
+
+
+hotspot_17_metrics = add_metrics_to_hotspots(big_list[[grep('2017',unlist(lapply(lapply(lapply(big_list, `[[`, 1), as.character), '[[',1)))[1]]][[2]], #this is the 2017 year in the big_list
+                                             hotspot_17_raw, gang_presence_cols, vocational_cols, parent_cols)
+hotspot_15_metrics = add_metrics_to_hotspots(big_list[[grep('2015',unlist(lapply(lapply(lapply(big_list, `[[`, 1), as.character), '[[',1)))[1]]][[2]], #this is the 2015 year in the big_list
+                                             hotspot_15_raw, gang_presence_cols, vocational_cols, parent_cols)
+
+hotspot_15_raw_metrics = add_metrics_to_hotspots(raw_list[[grep('2015',unlist(lapply(lapply(lapply(raw_list, `[[`, 1), as.character), '[[',1)))[1]]][[2]], #this is the 2015 year in the raw_list
+                                                 hotspot_15_raw, gang_presence_cols = raw_data_cols, vocational_cols = NULL, parent_cols = NULL)
+
+
+hotspot_17_raw_metrics = add_metrics_to_hotspots(raw_list[[grep('2017',unlist(lapply(lapply(lapply(raw_list, `[[`, 1), as.character), '[[',1)))[1]]][[2]], #this is the 2017 year in the raw_list
+                                                 hotspot_17_raw, gang_presence_cols = raw_data_cols, vocational_cols = NULL, parent_cols = NULL)
+
+hotspot_17 = hotspot_17_metrics
+hotspot_17@data = merge(hotspot_17_metrics@data, hotspot_17_raw_metrics@data %>% select(-hotspot_name), by = 'hot_spot')
+
+hotspot_15 = hotspot_15_metrics
+hotspot_15@data = merge(hotspot_15_metrics@data, hotspot_15_raw_metrics@data %>% select(-hotspot_name), by = 'hot_spot')
+
+saveRDS(hotspot_17, 'Final_app_deliverable/Map Layers/hotspots 2017.rds')
+saveRDS(hotspot_15, 'Final_app_deliverable/Map Layers/hotspots 2015.rds')
+
+
+
+
+
+
 ####### Map functions #########
 install_and_load('viridis')
 install_and_load('dplyr')
@@ -182,9 +247,9 @@ get_labels = function(big_list, column_names, quantile_bins = NA, raw_list = NA,
   for(n in seq_along((big_list))){
     test = big_list[[n]][[2]]@data
     if(!is.na(quantile_bins)){
-      title = sprintf('<b>%s</b><br/><em><b>Need Rating - %s%%ile</b></em><br/><br/><b>Metrics:</b>', test$neib_name, get_quantile(test[,column_names[1]], quantile_bins))
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/><b>Metrics:</b>', test$neib_name, get_quantile(test[,column_names[1]], quantile_bins))
     }else{    
-      title = sprintf('<b>%s</b><br/><em><b>Need Rating - %.2f%%</b></em><br/><br/><b>Metrics:</b>', test$neib_name, test[,column_names[1]]*100)
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/><b>Metrics:</b>', test$neib_name, test[,column_names[1]]*100)
     }
     # if(any(!is.na(weights)) & as.numeric(weights[which(weights[,1] == column_names[2]),2]) == 0){}else{
       label = paste(sep = '<br/>', title, sprintf('%s: %.f%%ile', gsub('_', ' ', column_names[2]), test[,paste0(column_names[2], '_percentile')]*100))
@@ -220,12 +285,12 @@ get_pred_labels = function(pred_dat, column_names, quantile_bins = NA){
   if(is.numeric(column_names[1])){column_names = colnames(pred_dat@data)[column_names]}
   if(!is.na(quantile_bins)){
     for(n in seq_along(column_names)){
-      title = sprintf('<b>%s</b><br/><em><b>Need Rating - %s%%ile</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, get_quantile(pred_dat@data[,column_names[n]], quantile_bins))
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, get_quantile(pred_dat@data[,column_names[n]], quantile_bins))
       labels[[n]] = title
     }
   }else{
     for(n in seq_along(column_names)){
-      title = sprintf('<b>%s</b><br/><em><b>Need Rating - %.2f%%</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, pred_dat@data[,column_names[n]]*100)
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, pred_dat@data[,column_names[n]]*100)
       labels[[n]] = title
     }
   }
@@ -247,70 +312,6 @@ brighten_color = function(color, brightness_perc = 0.05){
 }
 
 
-############# adding data to hotspots - hotspot_15 and hotspot_17 ###########
-#for testing purposes
-# plot(hs$geometry, col = 'green')
-# plot(test$geometry, add = TRUE)
-# plot(int$geometry, add = TRUE, col = 'red')
-# 
-# big_list_spdf = big_list[[5]][[2]]
-# hotspot_spdf = hotspot_17_raw
-# 
-install_and_load('sf')
-install_and_load('tidyverse')
-install_and_load('lwgeom')
-install_and_load('doBy')
-
-add_metrics_to_hotspots = function(big_list_spdf, hotspot_spdf, gang_presence_cols, vocational_cols, parent_cols){
-  test = big_list_spdf %>% st_as_sf()
-  hs = st_as_sf(hotspot_spdf)
-  install_and_load('sf')
-  install_and_load('tidyverse')
-  install_and_load('lwgeom')
-  int = (st_intersection(test, st_make_valid(hs))) #%>% select(GEOID, hot_spot, hotspot_name, geometry)
-  int$area = as.numeric(st_area(int$geometry))
-  int = int[order(int$hot_spot),]
-  int_data = int
-  int_data$geometry = NULL
-  install_and_load('doBy')
-  int_data_only = int_data[,unique(c(gang_presence_cols, vocational_cols, parent_cols))]
-  int_data_only = int_data_only * int_data$area
-  # identical(as.numeric(int_data_only$GANG_PRESENCE), as.numeric(int_data$GANG_PRESENCE*int_data$area))#success
-  int_data_only = cbind(hot_spot = int_data$hot_spot, int_data_only)
-  test_hs = summaryBy(. ~ hot_spot, data = int_data_only, FUN = sum)
-  colnames(test_hs) = gsub('\\.sum','', colnames(test_hs))
-  total_area = summaryBy(area ~ hot_spot, data = int_data, FUN = sum)
-  test_hs[,unique(c(gang_presence_cols, vocational_cols, parent_cols))] = test_hs[,unique(c(gang_presence_cols, vocational_cols, parent_cols))] / total_area$area.sum
-  hotspot_spdf@data = merge(hotspot_spdf@data, test_hs, by = 'hot_spot')
-  return(hotspot_spdf)
-}
-
-
-hotspot_17_metrics = add_metrics_to_hotspots(big_list[[grep('2017',unlist(lapply(lapply(lapply(big_list, `[[`, 1), as.character), '[[',1)))[1]]][[2]], #this is the 2017 year in the big_list
-                                     hotspot_17_raw, gang_presence_cols, vocational_cols, parent_cols)
-hotspot_15_metrics = add_metrics_to_hotspots(big_list[[grep('2015',unlist(lapply(lapply(lapply(big_list, `[[`, 1), as.character), '[[',1)))[1]]][[2]], #this is the 2015 year in the big_list
-                                     hotspot_15_raw, gang_presence_cols, vocational_cols, parent_cols)
-
-hotspot_15_raw_metrics = add_metrics_to_hotspots(raw_list[[grep('2015',unlist(lapply(lapply(lapply(raw_list, `[[`, 1), as.character), '[[',1)))[1]]][[2]], #this is the 2015 year in the raw_list
-                                         hotspot_15_raw, gang_presence_cols = raw_data_cols, vocational_cols = NULL, parent_cols = NULL)
-
-
-hotspot_17_raw_metrics = add_metrics_to_hotspots(raw_list[[grep('2017',unlist(lapply(lapply(lapply(raw_list, `[[`, 1), as.character), '[[',1)))[1]]][[2]], #this is the 2017 year in the raw_list
-                                          hotspot_17_raw, gang_presence_cols = raw_data_cols, vocational_cols = NULL, parent_cols = NULL)
-
-hotspot_17 = hotspot_17_metrics
-hotspot_17@data = merge(hotspot_17_metrics@data, hotspot_17_raw_metrics@data %>% select(-hotspot_name), by = 'hot_spot')
-
-hotspot_15 = hotspot_15_metrics
-hotspot_15@data = merge(hotspot_15_metrics@data, hotspot_15_raw_metrics@data %>% select(-hotspot_name), by = 'hot_spot')
-
-saveRDS(hotspot_17, 'Final_app_deliverable/Map Layers/hotspots 2017.rds')
-saveRDS(hotspot_15, 'Final_app_deliverable/Map Layers/hotspots 2015.rds')
-
-
-
-
-
 ######### FUNCTION: given hotspots, makes labels for hotspots ###########
 #testing for function
 # hotspot = hotspot_15
@@ -323,9 +324,9 @@ saveRDS(hotspot_15, 'Final_app_deliverable/Map Layers/hotspots 2015.rds')
 get_hotspot_labels = function(hotspot, big_list_dat, column_names, quantile_bins = NA, raw_data_cols = NA, raw_data_col_names = NA){
     test = hotspot@data
     if(!is.na(quantile_bins)){
-      title = sprintf('<b>Hotspot: %s</b><br/><em><b>Need Rating - %s%%ile</b></em><br/><br/><b>Metrics:</b>', test$hotspot_name, get_quantile(test[,column_names[1]], quantile_bins, compare_vec = big_list_dat[,column_names[1]]))
+      title = sprintf('<b>Hotspot: %s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/><b>Metrics:</b>', test$hotspot_name, get_quantile(test[,column_names[1]], quantile_bins, compare_vec = big_list_dat[,column_names[1]]))
     }else{
-      title = sprintf('<b>Hotspot: %s</b><br/><em><b>Need Rating - %.2f%%</b></em><br/><br/><b>Metrics:</b>', test$hotspot_name, round(test[,column_names[1]]*100,2))
+      title = sprintf('<b>Hotspot: %s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/><b>Metrics:</b>', test$hotspot_name, round(test[,column_names[1]]*100,2))
     }
     label = paste(sep = '<br/>', title, sprintf('%s: %.f%%ile', gsub('_', ' ', column_names[2]), round(get_percentile(test[,column_names[2]])*100,2)))
     for(cols in column_names[3:length(column_names)]){
@@ -472,7 +473,7 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
   if(!is.na(quantile_bins)){legend_val = unique(metric_val)[order(unique(metric_val))]}else{legend_val = seq(0,1,by = 0.01)}
   
   ret_map <- initial_map %>% addLegend(pal = pallete_function[[1]], values = legend_val, opacity = 0.7, position = 'bottomright',
-                                       title = 'Need Value Decile') %>%
+                                       title = 'Overall Risk Factor Score Decile') %>%
     addPolygons(data = hotspot_17, color = hotspot_17_colors, opacity = 1,
                  fillOpacity = 0,
                  weight = 4, group = '2017 MGPTF hotspots', 
@@ -726,7 +727,7 @@ phone_map <- map %>% addPolygons(data = big_list[[length(big_list)]][[2]], weigh
                                                                        bringToFront = FALSE, dashArray = FALSE),
                                    group = gsub('([[:digit:]]+)(-[[:print:]]+)', '\\1 Actual', as.character(big_list[[length(big_list)]][[1]][1]))
                                    ) %>% addLegend(colors = pallete(legend_val), opacity = 0.7, position = 'bottomright',
-                                                   title = 'Need Value', labels = c('Low', 'High'))
+                                                   title = 'Risk Factor\nScore', labels = c('Low', 'High'))
 
 
 
@@ -788,7 +789,7 @@ saveRDS(parent_map, 'Final_app_deliverable/Map Layers/initial_parent_map.rds')
 
 
 
-######### Pulling census tracts of San Jose #########
+######### DONE #########
 
 
 
