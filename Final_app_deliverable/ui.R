@@ -87,7 +87,7 @@ shinyUI(
     
     # Application title
     titlePanel(
-      list(h1("Violence Risk Factors Map"),
+      list("Violence Risk Factors Map",
            h5("An editable map of the risk factors for youth and gang violence."),
            h5("Toggle the metrics below to identify neighborhoods with specific risk factors."))
     ),

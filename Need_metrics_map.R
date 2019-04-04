@@ -133,7 +133,6 @@ for(n in seq_along(full_list)){
   raw_list[[n]][[2]] = raw_list[[n]][[2]][which(raw_list[[n]][[2]]@data$GEOID %in% big_list[[n]][[2]]@data$GEOID),][order(big_list[[n]][[2]]@data$GEOID),]
 }
 
-saveRDS(raw_list, 'Final_app_deliverable/raw_list_cleaned.rds')
 
 
 
@@ -208,28 +207,28 @@ install_and_load('dplyr')
 
 
 #pallettes
-get_pals = function(big_list, column_name, quantile_bins = NA, pallete_colors = 'plasma', reverse_pal = FALSE){
+get_pals = function(big_list, label_metric_cols, quantile_bins = NA, pallete_colors = 'plasma', reverse_pal = FALSE){
   require(viridis)
   pals = list()
   if(is.na(quantile_bins) | quantile_bins < 2){
     for(n in seq_along((big_list))){
-      pals[[n]] = colorNumeric(pallete_colors, domain = big_list[[n]][[2]]@data[,column_name], reverse = reverse_pal)
+      pals[[n]] = colorNumeric(pallete_colors, domain = big_list[[n]][[2]]@data[,label_metric_cols], reverse = reverse_pal)
     }
   }else{
     for(n in seq_along(big_list)){
-      risk_quant = get_quantile(big_list[[n]][[2]]@data[,column_name], quantile_bins)
+      risk_quant = get_quantile(big_list[[n]][[2]]@data[,label_metric_cols], quantile_bins)
       pals[[n]] = colorFactor(pallete_colors, domain = risk_quant, reverse = reverse_pal)
     }
   }
   return(pals)
 }
 
-get_pred_pals = function(pred_dat, column_names, quantile_bins = NA, pallete_colors = 'plasma', reverse_pal = FALSE){
+get_pred_pals = function(pred_dat, label_metric_cols, quantile_bins = NA, pallete_colors = 'plasma', reverse_pal = FALSE){
   require(viridis)
   pals = list()
-  if(is.numeric(column_names[1])){column_names = colnames(pred_dat@data)[column_names]}
+  if(is.numeric(label_metric_cols[1])){label_metric_cols = colnames(pred_dat@data)[label_metric_cols]}
   n = 1
-  for(col_name in column_names){
+  for(col_name in label_metric_cols){
     if(is.na(quantile_bins) | quantile_bins < 2){
       pals[[n]] = colorNumeric(pallete_colors, domain = pred_dat@data[,col_name], reverse = reverse_pal)
     }else{
@@ -242,24 +241,24 @@ get_pred_pals = function(pred_dat, column_names, quantile_bins = NA, pallete_col
 }
 
 #labels
-get_labels = function(big_list, column_names, quantile_bins = NA, raw_list = NA, raw_data_cols = NA, raw_data_col_names = NA){#, weights = NA){
+get_labels = function(big_list, label_metric_cols, quantile_bins = NA, raw_list = NA, raw_data_cols = NA, raw_data_col_names = NA){#, weights = NA){
   labels = list()
   for(n in seq_along((big_list))){
     test = big_list[[n]][[2]]@data
     if(!is.na(quantile_bins)){
-      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/><b>Metrics:</b>', test$neib_name, get_quantile(test[,column_names[1]], quantile_bins))
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/><b>Metrics:</b>', test$neib_name, get_quantile(test[,label_metric_cols[1]], quantile_bins))
     }else{    
-      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/><b>Metrics:</b>', test$neib_name, test[,column_names[1]]*100)
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/><b>Metrics:</b>', test$neib_name, test[,label_metric_cols[1]]*100)
     }
-    # if(any(!is.na(weights)) & as.numeric(weights[which(weights[,1] == column_names[2]),2]) == 0){}else{
-      label = paste(sep = '<br/>', title, sprintf('%s: %.f%%ile', gsub('_', ' ', column_names[2]), test[,paste0(column_names[2], '_percentile')]*100))
+    # if(any(!is.na(weights)) & as.numeric(weights[which(weights[,1] == label_metric_cols[2]),2]) == 0){}else{
+      label = paste(sep = '<br/>', title, sprintf('%s: %.f%%ile', gsub('_', ' ', label_metric_cols[2]), test[,paste0(label_metric_cols[2], '_percentile')]*100))
     # }
-    for(cols in column_names[3:length(column_names)]){
+    for(cols in label_metric_cols[3:length(label_metric_cols)]){
       # if(any(!is.na(weights)) & as.numeric(weights[which(weights[,1] == cols),2]) == 0){}else{
       label = paste(sep = '<br/>', label, sprintf('%s: %.f%%ile', gsub('_', ' ', cols), test[,paste0(cols, '_percentile')]*100))
       # }
     }
-    if(!is.na(raw_list) & !is.na(raw_data_cols)){
+    if(!is.na(raw_list)[1] & !is.na(raw_data_cols)[1]){
       if(length(raw_data_cols) == length(raw_data_col_names) | is.na(raw_data_col_names[1])){
         raw_test = raw_list[[n]][[2]]@data
         label = paste0(label, '<br/>_______________<br/><b>Raw Metrics:</b>')
@@ -268,7 +267,7 @@ get_labels = function(big_list, column_names, quantile_bins = NA, raw_list = NA,
         for(i in seq_along(raw_data_cols)[-1]){
           label = paste(sep = '<br/>', label, sprintf('%s: %s%%', raw_data_col_names[i], raw_test[,raw_data_cols[i]]))
         }
-        # for(cols in column_names[3:length(column_names)]){
+        # for(cols in label_metric_cols[3:length(label_metric_cols)]){
         #   label = paste(sep = '<br/>', label, sprintf('%s: %.f%%ile', gsub('_', ' ', cols), test[,paste0(cols, '_percentile')]*100))
         # }
         
@@ -280,17 +279,17 @@ get_labels = function(big_list, column_names, quantile_bins = NA, raw_list = NA,
   return(labels)
 }
 
-get_pred_labels = function(pred_dat, column_names, quantile_bins = NA){
+get_pred_labels = function(pred_dat, label_metric_cols, quantile_bins = NA){
   labels = list()
-  if(is.numeric(column_names[1])){column_names = colnames(pred_dat@data)[column_names]}
+  if(is.numeric(label_metric_cols[1])){label_metric_cols = colnames(pred_dat@data)[label_metric_cols]}
   if(!is.na(quantile_bins)){
-    for(n in seq_along(column_names)){
-      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, get_quantile(pred_dat@data[,column_names[n]], quantile_bins))
+    for(n in seq_along(label_metric_cols)){
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, get_quantile(pred_dat@data[,label_metric_cols[n]], quantile_bins))
       labels[[n]] = title
     }
   }else{
-    for(n in seq_along(column_names)){
-      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, pred_dat@data[,column_names[n]]*100)
+    for(n in seq_along(label_metric_cols)){
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, pred_dat@data[,label_metric_cols[n]]*100)
       labels[[n]] = title
     }
   }
@@ -380,7 +379,7 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                     hotspot_17_centroid = NA, label_transparency = 0.5){
   
   oldw <- getOption("warn")
-  options(warn = -1)
+  options(warn = 1)
   #making highlight colors
   cd_bright = brighten_color(cd_colors, brightness_perc)
   hs_15_bright = brighten_color(hotspot_15_colors, brightness_perc)
@@ -437,8 +436,8 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
   if(!is.null(pred_dat)){
     pred_cols = grep(pred_title, colnames(pred_dat@data), value = TRUE)
     pred_group_names = gsub('([^0-9]+)([[:digit:]]+)', '\\2 Predicted', pred_cols)
-    pred_labels = get_pred_labels(pred_dat, column_names = pred_cols, quantile_bins)
-    pred_pals = get_pred_pals(pred_dat, column_names = pred_cols, quantile_bins, pallete_colors, reverse_pal)
+    pred_labels = get_pred_labels(pred_dat, label_metric_cols = pred_cols, quantile_bins)
+    pred_pals = get_pred_pals(pred_dat, label_metric_cols = pred_cols, quantile_bins, pallete_colors, reverse_pal)
     
     for(n in seq_along(pred_cols)){
       col_name = pred_cols[n]
@@ -536,14 +535,14 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                                                                                                  "border-color" = paste0("rgba(0,0,0,",label_transparency,")")
                                                                                                )))} %>% #council district labels
     
-    addLayersControl(baseGroups = layer_names, overlayGroups = c('2015 MGPTF hotspots', '2017 MGPTF hotspots', 'Schools', 'Council Districts'), options = layersControlOptions(collapsed = FALSE, autoZIndex = TRUE),
+    addLayersControl(baseGroups = layer_names, overlayGroups = c('2015 MGPTF Hot Spots', '2017 MGPTF Hot Spots', 'Schools', 'Council Districts'), options = layersControlOptions(collapsed = FALSE, autoZIndex = TRUE),
                      position = 'topright') %>%
     addControl(html = html_legend_school_icons, position = "bottomleft") %>%
 
     hideGroup(c("2015 MGPTF hotspots", "2017 MGPTF hotspots", 'Schools', 'Council Districts')) %>% showGroup(last_actual) %>% hideGroup(first_actual) %>%
     # {if(!is.null(pred_dat)) hideGroup(.,first_pred)} %>%
-    addLegend(colors = hotspot_17_colors, labels = '2017 Hotspots', 'bottomleft', opacity = 1) %>%
-    addLegend(colors = hotspot_15_colors, labels = '2015 Hotspots', 'bottomleft', opacity = 1) %>%
+    addLegend(colors = hotspot_17_colors, labels = '2017 Hot Spots', 'bottomleft', opacity = 1) %>%
+    addLegend(colors = hotspot_15_colors, labels = '2015 Hot Spots', 'bottomleft', opacity = 1) %>%
     addLegend(colors = cd_colors, labels = 'Council Districts', 'bottomleft', opacity = 1)
   
   options(warn = oldw)
@@ -556,7 +555,7 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
 
 
 
-######## Quick fixes to data - big_list and pred_dat ###########
+######## Quick fixes to data - big_list and raw_list and pred_dat ###########
 # Fixing Spartan Keyes neighborhood name and ordering each map properly
 for(n in seq_along(big_list)){
   big_list[[n]][[2]]@data$neib_name = as.character(big_list[[n]][[2]]@data$neib_name)
@@ -566,17 +565,27 @@ for(n in seq_along(big_list)){
 
 
 
-
+#dropping unincorporated ares from the raw metrics
+for(n in seq_along(raw_list)){
+  raw_list[[n]][[2]] = raw_list[[n]][[2]][grep('Unincorporated', big_list[[n]][[2]]@data$neib_name, ignore.case = TRUE, invert = TRUE),]
+}
 #dropping unincorporated areas from the map
 for(n in seq_along(big_list)){
   big_list[[n]][[2]] = big_list[[n]][[2]][grep('Unincorporated', big_list[[n]][[2]]@data$neib_name, ignore.case = TRUE, invert = TRUE),]
 }
 
+
 pred_dat = pred_dat[grep('Unincorporated', pred_dat@data$neib_name, ignore.case = TRUE, invert = TRUE),]
 pred_dat$neib_name = gsub('Spartan Keys', 'Spartan Keyes', as.character(pred_dat$neib_name))
 
+# test = big_list[[n]][[2]]
+# unique(test$GEOID)
+# length(test$GEOID)
+
 saveRDS(big_list, 'Final_app_deliverable/big_list_cleaned.rds')
 saveRDS(pred_dat, 'Final_app_deliverable/pred_dat_cleaned.rds')
+saveRDS(raw_list, 'Final_app_deliverable/raw_list_cleaned.rds')
+
 
 ######### Cleaning school_bounds data and creating the school_points data - school_bounds and school_points #########
 

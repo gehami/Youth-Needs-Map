@@ -508,14 +508,14 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                                                                                                  "border-color" = paste0("rgba(0,0,0,",label_transparency,")")
                                                                                                )))} %>% #council district labels
     
-    addLayersControl(baseGroups = layer_names, overlayGroups = c('2015 MGPTF hotspots', '2017 MGPTF hotspots', 'Schools', 'Council Districts'), options = layersControlOptions(collapsed = FALSE, autoZIndex = TRUE),
+    addLayersControl(baseGroups = layer_names, overlayGroups = c('2015 MGPTF Hot Spots', '2017 MGPTF Hot Spots', 'Schools', 'Council Districts'), options = layersControlOptions(collapsed = FALSE, autoZIndex = TRUE),
                      position = 'topright') %>%
     addControl(html = html_legend_school_icons, position = "bottomleft") %>%
     
     hideGroup(c("2015 MGPTF hotspots", "2017 MGPTF hotspots", 'Schools', 'Council Districts')) %>% showGroup(last_actual) %>% hideGroup(first_actual) %>%
     # {if(!is.null(pred_dat)) hideGroup(.,first_pred)} %>%
-    addLegend(colors = hotspot_17_colors, labels = '2017 Hotspots', 'bottomleft', opacity = 1) %>%
-    addLegend(colors = hotspot_15_colors, labels = '2015 Hotspots', 'bottomleft', opacity = 1) %>%
+    addLegend(colors = hotspot_17_colors, labels = '2017 Hot Spots', 'bottomleft', opacity = 1) %>%
+    addLegend(colors = hotspot_15_colors, labels = '2015 Hot Spots', 'bottomleft', opacity = 1) %>%
     addLegend(colors = cd_colors, labels = 'Council Districts', 'bottomleft', opacity = 1)
   
   options(warn = oldw)

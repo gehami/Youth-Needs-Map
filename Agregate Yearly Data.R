@@ -300,6 +300,7 @@ for(year_ind in seq_along(start_year_range)){
   full_spdf@data = merge(full_spdf@data, crime_by_tract, by = 'GEOID')
   
   
+  
   ############ SSCI Incident Data - incident_counts, full_spdf ##########
   school_bounds = tryCatch(school_bounds, error = function(e){readRDS('RDS files/school_bounds_updated.rds') %>% sp::spTransform(full_spdf@proj4string)})
   # school_bounds = readRDS('RDS files/school_bounds_updated.rds') %>% sp::spTransform(full_spdf@proj4string)
@@ -391,6 +392,7 @@ for(year_ind in seq_along(start_year_range)){
 
   ############# That's all the data. #############
   
+
   
   ############# Handling data operations and dropping certain data - need_metrics_spdf #############
   
@@ -483,7 +485,11 @@ for(year_ind in seq_along(start_year_range)){
   # rownames(tract_city_matrix) = need_metrics_spdf@data$GEOID
   # colnames(tract_city_matrix) = seq_along(sj@polygons)
   
+  
   need_metrics_spdf = need_metrics_spdf[which(gIntersects(sj, need_metrics_spdf, byid = TRUE)),]
+  
+
+  
   
   
   ############# FUNCTION Calculating percentiles for each metric ################
