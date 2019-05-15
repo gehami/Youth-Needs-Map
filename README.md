@@ -3,7 +3,7 @@ A map for identifying the neighborhoods in San Jose at highest risk for youth an
 
 # Notice:
 
-All files in "RDS files" folder have been removed due to concerns about releasing data. While no data is personal or identfiable, it does include demographic data such as race, which is not included in the maps directly. Data may be added here following City approval.
+All files in "RDS files" folder have been added. The entire program can run as expected now. 
 
 ## Final App Deliverable 
 Works straight out of the box. Make sure to have R installed
