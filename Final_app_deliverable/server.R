@@ -159,20 +159,33 @@ get_new_big_list = function(class_weights, big_list, replace_col){
 
 ######## Map Constants ##########
 START_VALUE = 1
-TILE_OPACITY = .7
-QUANTILE_BINS = 10
-pallete_colors = 'RdYlGn'
-reverse_pal = TRUE
-cd_colors = '#1A1423'
-hotspot_15_colors = '#FA7921' 
-hotspot_17_colors = '#1C3144'
+TILE_OPACITY = .7 #opacity of the fill colors (color showing risk level) on the map
+QUANTILE_BINS = 10 #number of quantiles for need. Can be set to NA to see raw need percentages.
+pallete_colors = 'RdYlGn' #color pallette. Google 'Leaflet color pallettes" and "viridis color pallettes" to see what is available
+reverse_pal = TRUE #reverses order of colors in pallette
+cd_colors = '#1A1423' #color for council district outline
+hotspot_15_colors = '#FA7921'  #color for 2015 hotspot outline
+hotspot_17_colors = '#1C3144' #color for 2017 hotspot outline. Can easily incorporate another color and for the next hotspot
 brightness_perc = 0.5
-raw_data_cols = c('total_pop', 'white', 'black', 'asian', 'hispanic', 'unemployed', 'below_poverty_line')#, 'no_diploma_18_24')
-raw_data_col_names = c('Total Population', 'White', 'Black', 'Asian', 'Latinx', 'Unemployment Rate', 'Below Poverty Line')#, 'Young Adults (18-24) Without Diploma')
-label_transparency = 0.5
+raw_data_cols = c('total_pop', 'cad_calls', 'white', 'black', 'asian', 'hispanic', 'unemployed', 'below_poverty_line')#, 'no_diploma_18_24')
+raw_data_col_names = c('Total Population', 'High Priority Police Calls for Service', 'White', 'Black', 'Asian', 'Latinx', 'Unemployment Rate', 'Below Poverty Line')#, 'Young Adults (18-24) Without Diploma')
+label_transparency = 0.8
+cad_colors = "#03F"
+
 
 
 last_actual_year = as.numeric(substr(as.character(big_list[[length(big_list)]][[1]][1]), 1, 4))
+
+########## From a raw_list item, returns a spdf of the calls for service as a centroid point in each tract ########## 
+# raw_map = raw_list[[1]][[2]]
+install_and_load('rgeos')
+make_cad_spdf = function(raw_map){
+  cad_centroids = rgeos::gCentroid(raw_map, byid = TRUE)
+  cad_spdf = SpatialPointsDataFrame(coords = cad_centroids, data = data.frame(cad_calls = raw_map@data$cad_calls))
+  return(cad_spdf)
+}
+
+
 
 ####### Map functions #########
 install_and_load('viridis')
@@ -180,28 +193,28 @@ install_and_load('dplyr')
 
 
 #pallettes
-get_pals = function(big_list, column_name, quantile_bins = NA, pallete_colors = 'plasma', reverse_pal = FALSE){
+get_pals = function(big_list, label_metric_cols, quantile_bins = NA, pallete_colors = 'plasma', reverse_pal = FALSE){
   require(viridis)
   pals = list()
   if(is.na(quantile_bins) | quantile_bins < 2){
     for(n in seq_along((big_list))){
-      pals[[n]] = colorNumeric(pallete_colors, domain = big_list[[n]][[2]]@data[,column_name], reverse = reverse_pal)
+      pals[[n]] = colorNumeric(pallete_colors, domain = big_list[[n]][[2]]@data[,label_metric_cols], reverse = reverse_pal)
     }
   }else{
     for(n in seq_along(big_list)){
-      risk_quant = get_quantile(big_list[[n]][[2]]@data[,column_name], quantile_bins)
+      risk_quant = get_quantile(big_list[[n]][[2]]@data[,label_metric_cols], quantile_bins)
       pals[[n]] = colorFactor(pallete_colors, domain = risk_quant, reverse = reverse_pal)
     }
   }
   return(pals)
 }
 
-get_pred_pals = function(pred_dat, column_names, quantile_bins = NA, pallete_colors = 'plasma', reverse_pal = FALSE){
+get_pred_pals = function(pred_dat, label_metric_cols, quantile_bins = NA, pallete_colors = 'plasma', reverse_pal = FALSE){
   require(viridis)
   pals = list()
-  if(is.numeric(column_names[1])){column_names = colnames(pred_dat@data)[column_names]}
+  if(is.numeric(label_metric_cols[1])){label_metric_cols = colnames(pred_dat@data)[label_metric_cols]}
   n = 1
-  for(col_name in column_names){
+  for(col_name in label_metric_cols){
     if(is.na(quantile_bins) | quantile_bins < 2){
       pals[[n]] = colorNumeric(pallete_colors, domain = pred_dat@data[,col_name], reverse = reverse_pal)
     }else{
@@ -214,33 +227,34 @@ get_pred_pals = function(pred_dat, column_names, quantile_bins = NA, pallete_col
 }
 
 #labels
-get_labels = function(big_list, column_names, quantile_bins = NA, raw_list = NA, raw_data_cols = NA, raw_data_col_names = NA){#, weights = NA){
+get_labels = function(big_list, label_metric_cols, quantile_bins = NA, raw_list = NA, raw_data_cols = NA, raw_data_col_names = NA){#, weights = NA){
   labels = list()
   for(n in seq_along((big_list))){
     test = big_list[[n]][[2]]@data
     if(!is.na(quantile_bins)){
-      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/><b>Metrics:</b>', test$neib_name, get_quantile(test[,column_names[1]], quantile_bins))
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/><b>Metrics:</b>', test$neib_name, get_quantile(test[,label_metric_cols[1]], quantile_bins))
     }else{    
-      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/><b>Metrics:</b>', test$neib_name, test[,column_names[1]]*100)
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/><b>Metrics:</b>', test$neib_name, test[,label_metric_cols[1]]*100)
     }
-    # if(any(!is.na(weights)) & as.numeric(weights[which(weights[,1] == column_names[2]),2]) == 0){}else{
-    label = paste(sep = '<br/>', title, sprintf('%s: %.f%%ile', gsub('_', ' ', column_names[2]), test[,paste0(column_names[2], '_percentile')]*100))
+    # if(any(!is.na(weights)) & as.numeric(weights[which(weights[,1] == label_metric_cols[2]),2]) == 0){}else{
+    label = paste(sep = '<br/>', title, sprintf('%s: %.f%%ile', gsub('_', ' ', label_metric_cols[2]), test[,paste0(label_metric_cols[2], '_percentile')]*100))
     # }
-    for(cols in column_names[3:length(column_names)]){
+    for(cols in label_metric_cols[3:length(label_metric_cols)]){
       # if(any(!is.na(weights)) & as.numeric(weights[which(weights[,1] == cols),2]) == 0){}else{
       label = paste(sep = '<br/>', label, sprintf('%s: %.f%%ile', gsub('_', ' ', cols), test[,paste0(cols, '_percentile')]*100))
       # }
     }
-    if(!is.na(raw_list) & !is.na(raw_data_cols)){
+    if(!is.na(raw_list)[1] & !is.na(raw_data_cols)[1]){
       if(length(raw_data_cols) == length(raw_data_col_names) | is.na(raw_data_col_names[1])){
         raw_test = raw_list[[n]][[2]]@data
         label = paste0(label, '<br/>_______________<br/><b>Raw Metrics:</b>')
         
         label = paste0(label, '<br/>', sprintf('%s: %s', raw_data_col_names[1], raw_test[,raw_data_cols[1]]))
-        for(i in seq_along(raw_data_cols)[-1]){
+        label = paste0(label, '<br/>', sprintf('%s: %s', raw_data_col_names[2], raw_test[,raw_data_cols[2]]))
+        for(i in seq_along(raw_data_cols)[-c(1:2)]){
           label = paste(sep = '<br/>', label, sprintf('%s: %s%%', raw_data_col_names[i], raw_test[,raw_data_cols[i]]))
         }
-        # for(cols in column_names[3:length(column_names)]){
+        # for(cols in label_metric_cols[3:length(label_metric_cols)]){
         #   label = paste(sep = '<br/>', label, sprintf('%s: %.f%%ile', gsub('_', ' ', cols), test[,paste0(cols, '_percentile')]*100))
         # }
         
@@ -252,17 +266,17 @@ get_labels = function(big_list, column_names, quantile_bins = NA, raw_list = NA,
   return(labels)
 }
 
-get_pred_labels = function(pred_dat, column_names, quantile_bins = NA){
+get_pred_labels = function(pred_dat, label_metric_cols, quantile_bins = NA){
   labels = list()
-  if(is.numeric(column_names[1])){column_names = colnames(pred_dat@data)[column_names]}
+  if(is.numeric(label_metric_cols[1])){label_metric_cols = colnames(pred_dat@data)[label_metric_cols]}
   if(!is.na(quantile_bins)){
-    for(n in seq_along(column_names)){
-      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, get_quantile(pred_dat@data[,column_names[n]], quantile_bins))
+    for(n in seq_along(label_metric_cols)){
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %s%%ile</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, get_quantile(pred_dat@data[,label_metric_cols[n]], quantile_bins))
       labels[[n]] = title
     }
   }else{
-    for(n in seq_along(column_names)){
-      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, pred_dat@data[,column_names[n]]*100)
+    for(n in seq_along(label_metric_cols)){
+      title = sprintf('<b>%s</b><br/><em><b>Risk Factor Score - %.2f%%</b></em><br/><br/>Metrics are, on average, 99.3%% accurate.', pred_dat@data$neib_name, pred_dat@data[,label_metric_cols[n]]*100)
       labels[[n]] = title
     }
   }
@@ -309,7 +323,8 @@ get_hotspot_labels = function(hotspot, big_list_dat, column_names, quantile_bins
       raw_test = raw_list[[n]][[2]]@data
       label = paste0(label, '<br/>_______________<br/><b>Raw Metrics:</b>')
       label = paste0(label, '<br/>', sprintf('%s: %s', raw_data_col_names[1], round(hotspot@data[,raw_data_cols[1]])))
-      for(i in seq_along(raw_data_cols)[-1]){
+      label = paste0(label, '<br/>', sprintf('%s: %s', raw_data_col_names[2], raw_test[,raw_data_cols[2]]))
+      for(i in seq_along(raw_data_cols)[-c(1:2)]){
         label = paste(sep = '<br/>', label, sprintf('%s: %s%%', raw_data_col_names[i], round(hotspot@data[,raw_data_cols[i]], 2)))
       }
       # for(cols in column_names[3:length(column_names)]){
@@ -349,10 +364,10 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                     pallete_colors = 'plasma', reverse_pal = FALSE, 
                     cd_colors = '#26A54E', hotspot_15_colors = '#B600FF', hotspot_17_colors = '#000000', brightness_perc = 0.05,
                     raw_list = NA, raw_data_cols = NA, raw_data_col_names = NA, council_centroid = NA, hotspot_15_centroid = NA,
-                    hotspot_17_centroid = NA, label_transparency = 0.5){
+                    hotspot_17_centroid = NA, label_transparency = 0.5, cad_colors = "#03F"){
   
   oldw <- getOption("warn")
-  options(warn = -1)
+  options(warn = 1)
   #making highlight colors
   cd_bright = brighten_color(cd_colors, brightness_perc)
   hs_15_bright = brighten_color(hotspot_15_colors, brightness_perc)
@@ -372,24 +387,27 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                                          label_metric_cols, quantile_bins, raw_data_cols, raw_data_col_names)
   
   
-  if(!is.na(quantile_bins)){
-    metric_val = get_quantile(big_list[[1]][[2]]@data[,metric_title], quantile_bins)
-  }else{
-    metric_val = big_list[[1]][[2]]@data[,metric_title]
-  }
+  # if(!is.na(quantile_bins)){
+  #   metric_val = get_quantile(big_list[[1]][[2]]@data[,metric_title], quantile_bins)
+  # }else{
+  #   metric_val = big_list[[1]][[2]]@data[,metric_title]
+  # }
   
   # htmlEscape(popup_labels[[1]])
   #starting the full map
-  initial_map <- map %>% addPolygons(data = big_list[[1]][[2]], weight = 1, opacity = 1, color = 'white', dashArray = '3',
-                                     fillColor = ~pallete_function[[1]](metric_val),
-                                     fillOpacity = tile_opacity,
-                                     popup = lapply(popup_labels[[1]], HTML),
-                                     highlightOptions = highlightOptions(color = 'white', weight = 2,
-                                                                         bringToFront = FALSE, dashArray = FALSE),
-                                     group = gsub('([[:digit:]]+)(-[[:print:]]+)', '\\1 Actual', as.character(big_list[[1]][[1]][1]))
-  ) %>% addMapPane('risk_tiles', zIndex = 410) %>% addMapPane('hotspots', zIndex = 425) %>% addMapPane('schools', zIndex = 440)
+  initial_map <- map %>% addMarkers(group = 'Clear', lng = 10, lat = 10) %>% 
+    addMapPane('risk_tiles', zIndex = 410) %>% addMapPane('cad', zIndex = 420) %>%
+    addMapPane('hotspots', zIndex = 430) %>% addMapPane('schools', zIndex = 440) 
+  #   addPolygons(data = big_list[[1]][[2]], weight = 1, opacity = 1, color = 'white', dashArray = '3',
+  #                                    fillColor = ~pallete_function[[1]](metric_val),
+  #                                    fillOpacity = tile_opacity,
+  #                                    popup = lapply(popup_labels[[1]], HTML),
+  #                                    highlightOptions = highlightOptions(color = 'white', weight = 2,
+  #                                                                        bringToFront = FALSE, dashArray = FALSE),
+  #                                    group = gsub('([[:digit:]]+)(-[[:print:]]+)', '\\1 Actual', as.character(big_list[[1]][[1]][1]))
+  # ) 
   
-  for(n in 2 : length(big_list)){
+  for(n in 1 : length(big_list)){
     if(!is.na(quantile_bins)){
       metric_val = get_quantile(big_list[[n]][[2]]@data[,metric_title], quantile_bins)
     }else{
@@ -404,13 +422,22 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                                                group = gsub('([[:digit:]]+)(-[[:print:]]+)', '\\1 Actual', as.character(big_list[[n]][[1]][1])),
                                                options = pathOptions(pane = "risk_tiles")
     ) 
+    cad_spdf = make_cad_spdf(raw_list[[n]][[2]])
+    initial_map <- initial_map %>% addCircleMarkers(data = cad_spdf, stroke = FALSE, fillOpacity = 0.5, 
+                                                    radius = log(cad_spdf$cad_calls^2, base = 2)/3, 
+                                                    group = gsub('([[:digit:]]+)(-[[:print:]]+)', '\\1 Calls for Service', as.character(big_list[[n]][[1]][1])),
+                                                    popup = lapply(popup_labels[[n]], HTML),
+                                                    fillColor = cad_colors,
+                                                    options = pathOptions(pane = 'cad'),
+                                                    label = paste0(gsub('([[:digit:]]+)(-[[:print:]]+)', '\\1 Calls for Service: ', as.character(big_list[[n]][[1]][1])),
+                                                                   cad_spdf$cad_calls))
   }
   #and the predictive layers
   if(!is.null(pred_dat)){
     pred_cols = grep(pred_title, colnames(pred_dat@data), value = TRUE)
     pred_group_names = gsub('([^0-9]+)([[:digit:]]+)', '\\2 Predicted', pred_cols)
-    pred_labels = get_pred_labels(pred_dat, column_names = pred_cols, quantile_bins)
-    pred_pals = get_pred_pals(pred_dat, column_names = pred_cols, quantile_bins, pallete_colors, reverse_pal)
+    pred_labels = get_pred_labels(pred_dat, label_metric_cols = pred_cols, quantile_bins)
+    pred_pals = get_pred_pals(pred_dat, label_metric_cols = pred_cols, quantile_bins, pallete_colors, reverse_pal)
     
     for(n in seq_along(pred_cols)){
       col_name = pred_cols[n]
@@ -444,11 +471,15 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
   first_actual = layer_names[1]
   if(!is.na(quantile_bins)){legend_val = unique(metric_val)[order(unique(metric_val))]}else{legend_val = seq(0,1,by = 0.01)}
   
+  cad_layer_names = gsub('([[:digit:]]+)([[:print:]]*)', '\\1 Calls for Service', grep('Actual', layer_names, value = TRUE))
+  
+  
+  
   ret_map <- initial_map %>% addLegend(pal = pallete_function[[1]], values = legend_val, opacity = 0.7, position = 'bottomright',
                                        title = 'Overall Risk Factor Score Decile') %>%
     addPolygons(data = hotspot_17, color = hotspot_17_colors, opacity = 1,
                 fillOpacity = 0,
-                weight = 4, group = '2017 MGPTF hotspots', 
+                weight = 4, group = '2017 MGPTF Hot Spots', 
                 label = paste0('2017 hotspot: ', hotspot_17@data$hotspot_name),
                 popup = hotspot_17_labels,
                 options = pathOptions(pane = 'hotspots'),
@@ -469,7 +500,7 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
   #                                                                                  )))} %>% #hotspot 17 labels
   addPolygons(data = hotspot_15, color = hotspot_15_colors, opacity = 1,
               fillOpacity = 0,
-              weight = 4, group = '2015 MGPTF hotspots', 
+              weight = 4, group = '2015 MGPTF Hot Spots', 
               label = paste0('2015 hotspot: ', hotspot_15@data$hotspot_name),
               popup = hotspot_15_labels,
               options = pathOptions(pane = 'hotspots'),
@@ -508,21 +539,26 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                                                                                                  "border-color" = paste0("rgba(0,0,0,",label_transparency,")")
                                                                                                )))} %>% #council district labels
     
-    addLayersControl(baseGroups = layer_names, overlayGroups = c('2015 MGPTF Hot Spots', '2017 MGPTF Hot Spots', 'Schools', 'Council Districts'), options = layersControlOptions(collapsed = FALSE, autoZIndex = TRUE),
+    addLayersControl(baseGroups = c('Clear', layer_names), overlayGroups = c('2015 MGPTF Hot Spots', '2017 MGPTF Hot Spots', 'Schools', 'Council Districts',
+                                                                             cad_layer_names), options = layersControlOptions(collapsed = FALSE, autoZIndex = TRUE),
                      position = 'topright') %>%
     addControl(html = html_legend_school_icons, position = "bottomleft") %>%
     
-    hideGroup(c("2015 MGPTF hotspots", "2017 MGPTF hotspots", 'Schools', 'Council Districts')) %>% showGroup(last_actual) %>% hideGroup(first_actual) %>%
+    hideGroup(c("2015 MGPTF Hot Spots", "2017 MGPTF Hot Spots", 'Schools', 'Council Districts', cad_layer_names)) %>% showGroup(last_actual) %>% hideGroup(first_actual) %>%
     # {if(!is.null(pred_dat)) hideGroup(.,first_pred)} %>%
     addLegend(colors = hotspot_17_colors, labels = '2017 Hot Spots', 'bottomleft', opacity = 1) %>%
     addLegend(colors = hotspot_15_colors, labels = '2015 Hot Spots', 'bottomleft', opacity = 1) %>%
-    addLegend(colors = cd_colors, labels = 'Council Districts', 'bottomleft', opacity = 1)
+    addLegend(colors = cd_colors, labels = 'Council Districts', 'bottomleft', opacity = 1) %>%
+    addLegend(colors = cad_colors, labels = 'Calls for Service', 'bottomleft', opacity = 1) %>%
+    addLegend(colors = cad_colors, labels = 'Toggle these on the right', 'bottomleft', opacity = 0)
+  
+  
+  
   
   options(warn = oldw)
   return(ret_map)
   
 }
-
 
 
 

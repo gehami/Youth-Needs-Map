@@ -81,8 +81,7 @@ hotspot_15_raw = readRDS('RDS files/hotspots 2015.rds') #SpatialPolygonsDataFram
 pred_dat = readRDS('RDS files/predicted_metrics_for_2019-2021_rfq.rds') #developed from "Predicting the future.R". A dataframe of the predicted need metrics 
 school_bounds = readRDS('RDS files/school_bounds_for_16-18_IRs.rds') #A set of school boundaries. See 'School Boundary Work' Folder to see how this was made, but it isn't pretty, and required a lot of by-hand data cleaning. Best to just take this file as a given.
 
-cd_bounds = rgdal::readOGR(dsn = "CITY_COUNCIL_DISTRICTS", 
-                           layer = "CITY_COUNCIL_DISTRICTS") %>% sp::spTransform(big_list[[1]][[2]]@proj4string) #councild district map from shape files. 
+cd_bounds = readRDS('RDS files/Council_bounds.rds')
 
 
 ########## Pulling the metric names ##########
@@ -119,19 +118,22 @@ cd_colors = '#1A1423' #color for council district outline
 hotspot_15_colors = '#FA7921'  #color for 2015 hotspot outline
 hotspot_17_colors = '#1C3144' #color for 2017 hotspot outline. Can easily incorporate another color and for the next hotspot
 brightness_perc = 0.5
-raw_data_cols = c('total_pop', 'white', 'black', 'asian', 'hispanic', 'unemployed', 'below_poverty_line')#, 'no_diploma_18_24')
-raw_data_col_names = c('Total Population', 'White', 'Black', 'Asian', 'Latinx', 'Unemployment Rate', 'Below Poverty Line')#, 'Young Adults (18-24) Without Diploma')
+raw_data_cols = c('total_pop', 'cad_calls', 'white', 'black', 'asian', 'hispanic', 'unemployed', 'below_poverty_line')#, 'no_diploma_18_24')
+raw_data_col_names = c('Total Population', 'High Priority Police Calls for Service', 'White', 'Black', 'Asian', 'Latinx', 'Unemployment Rate', 'Below Poverty Line')#, 'Young Adults (18-24) Without Diploma')
 label_transparency = 0.8
+cad_colors = "#03F"
+
 
 ########## Formatting full_list raw data - raw_list ##############
 raw_list = full_list
 
 
 for(n in seq_along(full_list)){
-  raw_list[[n]][[2]]@data[,raw_data_cols[-1]] = round(full_list[[n]][[2]]@data[,raw_data_cols[-1]]*100, 1)
+  raw_list[[n]][[2]]@data[,raw_data_cols[-c(1:2)]] = round(full_list[[n]][[2]]@data[,raw_data_cols[-c(1:2)]]*100, 1)
   for(col_name in raw_data_cols[-1]){raw_list[[n]][[2]]@data[,col_name] = as.numeric(raw_list[[n]][[2]]@data[,col_name])}
   raw_list[[n]][[2]] = raw_list[[n]][[2]][which(raw_list[[n]][[2]]@data$GEOID %in% big_list[[n]][[2]]@data$GEOID),][order(big_list[[n]][[2]]@data$GEOID),]
 }
+
 
 
 
@@ -201,6 +203,17 @@ saveRDS(hotspot_15, 'Final_app_deliverable/Map Layers/hotspots 2015.rds')
 
 
 
+########## From a raw_list item, returns a spdf of the calls for service as a centroid point in each tract ########## 
+# raw_map = raw_list[[1]][[2]]
+install_and_load('rgeos')
+make_cad_spdf = function(raw_map){
+  cad_centroids = rgeos::gCentroid(raw_map, byid = TRUE)
+  cad_spdf = SpatialPointsDataFrame(coords = cad_centroids, data = data.frame(cad_calls = raw_map@data$cad_calls))
+  return(cad_spdf)
+}
+
+
+
 ####### Map functions #########
 install_and_load('viridis')
 install_and_load('dplyr')
@@ -264,7 +277,8 @@ get_labels = function(big_list, label_metric_cols, quantile_bins = NA, raw_list 
         label = paste0(label, '<br/>_______________<br/><b>Raw Metrics:</b>')
 
         label = paste0(label, '<br/>', sprintf('%s: %s', raw_data_col_names[1], raw_test[,raw_data_cols[1]]))
-        for(i in seq_along(raw_data_cols)[-1]){
+        label = paste0(label, '<br/>', sprintf('%s: %s', raw_data_col_names[2], raw_test[,raw_data_cols[2]]))
+        for(i in seq_along(raw_data_cols)[-c(1:2)]){
           label = paste(sep = '<br/>', label, sprintf('%s: %s%%', raw_data_col_names[i], raw_test[,raw_data_cols[i]]))
         }
         # for(cols in label_metric_cols[3:length(label_metric_cols)]){
@@ -336,7 +350,8 @@ get_hotspot_labels = function(hotspot, big_list_dat, column_names, quantile_bins
         raw_test = raw_list[[n]][[2]]@data
         label = paste0(label, '<br/>_______________<br/><b>Raw Metrics:</b>')
         label = paste0(label, '<br/>', sprintf('%s: %s', raw_data_col_names[1], round(hotspot@data[,raw_data_cols[1]])))
-        for(i in seq_along(raw_data_cols)[-1]){
+        label = paste0(label, '<br/>', sprintf('%s: %s', raw_data_col_names[2], raw_test[,raw_data_cols[2]]))
+        for(i in seq_along(raw_data_cols)[-c(1:2)]){
           label = paste(sep = '<br/>', label, sprintf('%s: %s%%', raw_data_col_names[i], round(hotspot@data[,raw_data_cols[i]], 2)))
         }
         # for(cols in column_names[3:length(column_names)]){
@@ -376,7 +391,7 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                     pallete_colors = 'plasma', reverse_pal = FALSE, 
                     cd_colors = '#26A54E', hotspot_15_colors = '#B600FF', hotspot_17_colors = '#000000', brightness_perc = 0.05,
                     raw_list = NA, raw_data_cols = NA, raw_data_col_names = NA, council_centroid = NA, hotspot_15_centroid = NA,
-                    hotspot_17_centroid = NA, label_transparency = 0.5){
+                    hotspot_17_centroid = NA, label_transparency = 0.5, cad_colors = "#03F"){
   
   oldw <- getOption("warn")
   options(warn = 1)
@@ -399,24 +414,27 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                                          label_metric_cols, quantile_bins, raw_data_cols, raw_data_col_names)
   
   
-  if(!is.na(quantile_bins)){
-    metric_val = get_quantile(big_list[[1]][[2]]@data[,metric_title], quantile_bins)
-  }else{
-    metric_val = big_list[[1]][[2]]@data[,metric_title]
-  }
+  # if(!is.na(quantile_bins)){
+  #   metric_val = get_quantile(big_list[[1]][[2]]@data[,metric_title], quantile_bins)
+  # }else{
+  #   metric_val = big_list[[1]][[2]]@data[,metric_title]
+  # }
 
   # htmlEscape(popup_labels[[1]])
   #starting the full map
-  initial_map <- map %>% addPolygons(data = big_list[[1]][[2]], weight = 1, opacity = 1, color = 'white', dashArray = '3',
-                                     fillColor = ~pallete_function[[1]](metric_val),
-                                     fillOpacity = tile_opacity,
-                                     popup = lapply(popup_labels[[1]], HTML),
-                                     highlightOptions = highlightOptions(color = 'white', weight = 2,
-                                                                         bringToFront = FALSE, dashArray = FALSE),
-                                     group = gsub('([[:digit:]]+)(-[[:print:]]+)', '\\1 Actual', as.character(big_list[[1]][[1]][1]))
-  ) %>% addMapPane('risk_tiles', zIndex = 410) %>% addMapPane('hotspots', zIndex = 425) %>% addMapPane('schools', zIndex = 440)
+  initial_map <- map %>% addMarkers(group = 'Clear', lng = 10, lat = 10) %>% 
+    addMapPane('risk_tiles', zIndex = 410) %>% addMapPane('cad', zIndex = 420) %>%
+    addMapPane('hotspots', zIndex = 430) %>% addMapPane('schools', zIndex = 440) 
+  #   addPolygons(data = big_list[[1]][[2]], weight = 1, opacity = 1, color = 'white', dashArray = '3',
+  #                                    fillColor = ~pallete_function[[1]](metric_val),
+  #                                    fillOpacity = tile_opacity,
+  #                                    popup = lapply(popup_labels[[1]], HTML),
+  #                                    highlightOptions = highlightOptions(color = 'white', weight = 2,
+  #                                                                        bringToFront = FALSE, dashArray = FALSE),
+  #                                    group = gsub('([[:digit:]]+)(-[[:print:]]+)', '\\1 Actual', as.character(big_list[[1]][[1]][1]))
+  # ) 
   
-  for(n in 2 : length(big_list)){
+  for(n in 1 : length(big_list)){
     if(!is.na(quantile_bins)){
       metric_val = get_quantile(big_list[[n]][[2]]@data[,metric_title], quantile_bins)
     }else{
@@ -431,6 +449,15 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                                                group = gsub('([[:digit:]]+)(-[[:print:]]+)', '\\1 Actual', as.character(big_list[[n]][[1]][1])),
                                                options = pathOptions(pane = "risk_tiles")
     ) 
+    cad_spdf = make_cad_spdf(raw_list[[n]][[2]])
+    initial_map <- initial_map %>% addCircleMarkers(data = cad_spdf, stroke = FALSE, fillOpacity = 0.5, 
+                                                    radius = log(cad_spdf$cad_calls^2, base = 2)/3, 
+                                                    group = gsub('([[:digit:]]+)(-[[:print:]]+)', '\\1 Calls for Service', as.character(big_list[[n]][[1]][1])),
+                                                    popup = lapply(popup_labels[[n]], HTML),
+                                                    fillColor = cad_colors,
+                                                    options = pathOptions(pane = 'cad'),
+                                                    label = paste0(gsub('([[:digit:]]+)(-[[:print:]]+)', '\\1 Calls for Service: ', as.character(big_list[[n]][[1]][1])),
+                                                                   cad_spdf$cad_calls))
   }
   #and the predictive layers
   if(!is.null(pred_dat)){
@@ -471,11 +498,15 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
   first_actual = layer_names[1]
   if(!is.na(quantile_bins)){legend_val = unique(metric_val)[order(unique(metric_val))]}else{legend_val = seq(0,1,by = 0.01)}
   
+  cad_layer_names = gsub('([[:digit:]]+)([[:print:]]*)', '\\1 Calls for Service', grep('Actual', layer_names, value = TRUE))
+  
+  
+  
   ret_map <- initial_map %>% addLegend(pal = pallete_function[[1]], values = legend_val, opacity = 0.7, position = 'bottomright',
                                        title = 'Overall Risk Factor Score Decile') %>%
     addPolygons(data = hotspot_17, color = hotspot_17_colors, opacity = 1,
                  fillOpacity = 0,
-                 weight = 4, group = '2017 MGPTF hotspots', 
+                 weight = 4, group = '2017 MGPTF Hot Spots', 
                  label = paste0('2017 hotspot: ', hotspot_17@data$hotspot_name),
                  popup = hotspot_17_labels,
                  options = pathOptions(pane = 'hotspots'),
@@ -496,7 +527,7 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                  #                                                                                  )))} %>% #hotspot 17 labels
     addPolygons(data = hotspot_15, color = hotspot_15_colors, opacity = 1,
                  fillOpacity = 0,
-                 weight = 4, group = '2015 MGPTF hotspots', 
+                 weight = 4, group = '2015 MGPTF Hot Spots', 
                  label = paste0('2015 hotspot: ', hotspot_15@data$hotspot_name),
                  popup = hotspot_15_labels,
                  options = pathOptions(pane = 'hotspots'),
@@ -535,15 +566,21 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                                                                                                  "border-color" = paste0("rgba(0,0,0,",label_transparency,")")
                                                                                                )))} %>% #council district labels
     
-    addLayersControl(baseGroups = layer_names, overlayGroups = c('2015 MGPTF Hot Spots', '2017 MGPTF Hot Spots', 'Schools', 'Council Districts'), options = layersControlOptions(collapsed = FALSE, autoZIndex = TRUE),
+    addLayersControl(baseGroups = c('Clear', layer_names), overlayGroups = c('2015 MGPTF Hot Spots', '2017 MGPTF Hot Spots', 'Schools', 'Council Districts',
+                                                                             cad_layer_names), options = layersControlOptions(collapsed = FALSE, autoZIndex = TRUE),
                      position = 'topright') %>%
     addControl(html = html_legend_school_icons, position = "bottomleft") %>%
 
-    hideGroup(c("2015 MGPTF hotspots", "2017 MGPTF hotspots", 'Schools', 'Council Districts')) %>% showGroup(last_actual) %>% hideGroup(first_actual) %>%
+    hideGroup(c("2015 MGPTF Hot Spots", "2017 MGPTF Hot Spots", 'Schools', 'Council Districts', cad_layer_names)) %>% showGroup(last_actual) %>% hideGroup(first_actual) %>%
     # {if(!is.null(pred_dat)) hideGroup(.,first_pred)} %>%
     addLegend(colors = hotspot_17_colors, labels = '2017 Hot Spots', 'bottomleft', opacity = 1) %>%
     addLegend(colors = hotspot_15_colors, labels = '2015 Hot Spots', 'bottomleft', opacity = 1) %>%
-    addLegend(colors = cd_colors, labels = 'Council Districts', 'bottomleft', opacity = 1)
+    addLegend(colors = cd_colors, labels = 'Council Districts', 'bottomleft', opacity = 1) %>%
+    addLegend(colors = cad_colors, labels = 'Calls for Service', 'bottomleft', opacity = 1) %>%
+    addLegend(colors = cad_colors, labels = 'Toggle these on the right', 'bottomleft', opacity = 0)
+    
+    
+  
   
   options(warn = oldw)
   return(ret_map)
@@ -681,7 +718,7 @@ cd_bounds = cd_bounds
 gp_sub_map = make_map(map, big_list, metric_title, label_metric_cols, hotspot_15, hotspot_17, school_points, cd_bounds, school_icons, html_legend_school_icons,
                                  pred_dat, pred_title, tile_opacity, quantile_bins, pallete_colors, reverse_pal,
                       cd_colors, hotspot_15_colors, hotspot_17_colors, brightness_perc, raw_list, raw_data_cols, raw_data_col_names,
-                      council_centroid, hotspot_15_centroid, hotspot_17_centroid, label_transparency)
+                      council_centroid, hotspot_15_centroid, hotspot_17_centroid, label_transparency, cad_colors)
 
 
 ########saving gp_sub_map as html #########

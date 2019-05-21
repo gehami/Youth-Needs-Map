@@ -90,6 +90,8 @@ neib_names_data = readRDS('RDS files/neighborhood names by census tract GEOID.rd
 
 graf_backup = readRDS('RDS files/Full Graffiti Data.rds')
 
+cad_df = readRDS('RDS files/cad_data_by_census_tract.rds')
+
 ######### Reading in All census Data - acs_list ############
 install_and_load('tidyverse')
 install_and_load('tidycensus')
@@ -298,6 +300,15 @@ for(year_ind in seq_along(start_year_range)){
   
   
   full_spdf@data = merge(full_spdf@data, crime_by_tract, by = 'GEOID')
+  
+  ############ Calls for service CAD Data - cad_by_count, full_spdf #############
+  
+  cad_by_count = count_tract_appearance(geoid_list = geoid_list, 
+                                        subject_geoid = cad_df$tract[cad_df$dt > START_DATE & cad_df$dt < END_DATE])
+  
+  colnames(cad_by_count) = c('GEOID', 'cad_calls')
+  
+  full_spdf@data = merge(full_spdf@data, cad_by_count, by = 'GEOID')
   
   
   
