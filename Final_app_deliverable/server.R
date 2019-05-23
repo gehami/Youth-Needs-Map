@@ -423,8 +423,8 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                                                options = pathOptions(pane = "risk_tiles")
     ) 
     cad_spdf = make_cad_spdf(raw_list[[n]][[2]])
-    initial_map <- initial_map %>% addCircleMarkers(data = cad_spdf, stroke = FALSE, fillOpacity = 0.5, 
-                                                    radius = log(cad_spdf$cad_calls^2, base = 2)/3, 
+    initial_map <- initial_map %>% addCircles(data = cad_spdf, stroke = FALSE, fillOpacity = 0.5, 
+                                                    radius = (cad_spdf$cad_calls/75)^1.5, 
                                                     group = gsub('([[:digit:]]+)(-[[:print:]]+)', '\\1 Calls for Service', as.character(big_list[[n]][[1]][1])),
                                                     popup = lapply(popup_labels[[n]], HTML),
                                                     fillColor = cad_colors,
