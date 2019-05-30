@@ -125,8 +125,8 @@ raw_data_cols = c('total_pop', 'cad_calls', 'white', 'black', 'asian', 'hispanic
 raw_data_col_names = c('Total Population', 'High Priority Police Calls for Service', 'White', 'Black', 'Asian', 'Latinx', 'Unemployment Rate', 'Below Poverty Line')#, 'Young Adults (18-24) Without Diploma')
 label_transparency = 0.8
 cad_colors = "#03F"
-cad_size_soft_cutoff = 100
-cad_size_hard_cutoff = 50
+cad_size_soft_cutoff = 150
+cad_size_hard_cutoff = 80
 
 ########## Formatting full_list raw data - raw_list ##############
 raw_list = full_list
@@ -396,7 +396,7 @@ make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, 
                     cd_colors = '#26A54E', hotspot_15_colors = '#B600FF', hotspot_17_colors = '#000000', brightness_perc = 0.05,
                     raw_list = NA, raw_data_cols = NA, raw_data_col_names = NA, council_centroid = NA, hotspot_15_centroid = NA,
                     hotspot_17_centroid = NA, label_transparency = 0.5, cad_colors = "#03F",
-                    cad_size_soft_cutoff = 100, cad_size_hard_cutoff = 50){
+                    cad_size_soft_cutoff = 150, cad_size_hard_cutoff = 80){
   
   oldw <- getOption("warn")
   options(warn = 1)
