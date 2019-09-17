@@ -796,6 +796,159 @@ saveRDS(vocational_map, 'Final_app_deliverable/Map Layers/initial_vocational_map
 saveRDS(parent_map, 'Final_app_deliverable/Map Layers/initial_parent_map.rds')
 
 
+######### Converting a map into a arcgis shapefile set #########
+
+
+
+install_and_load("rgdal")
+
+#given a set of maps, saves the layers as a shape file in a folder. 
+save_map = function(big_list, metric_title, label_metric_cols, pred_dat = NULL, pred_title = NULL,
+                    hotspot_15 = NULL, hotspot_17 = NULL, school_points = NULL, school_bounds = NULL,
+                    quantile_bins = NULL, cd_bounds = NULL, folder_name = NULL){
+  if(is.null(folder_name)) folder_name = paste0(metric_title, "_layers")
+  #check if folder already exists
+  if(dir.exists(folder_name)){
+    #if it exists, clears the folders contents
+    oldwd = getwd()
+    setwd(folder_name)
+    file.remove(list.files())
+    setwd(oldwd)
+  }else{
+    #if it doesn't exist, creates the folder.
+    # oldwd = getwd()
+    dir.create(folder_name)
+    # setwd(folder_name)
+  }
+  
+  #saving the standard layers
+  for(n in 1 : length(big_list)){
+    if(!is.na(quantile_bins)){
+      metric_val = get_quantile(big_list[[n]][[2]]@data[,metric_title], quantile_bins)
+    }else{
+      metric_val = big_list[[n]][[2]]@data[,metric_title]
+    }
+    #get scores layer for this year
+    map_data = big_list[[n]][[2]]
+    map_data@data = big_list[[n]][[2]]@data[,c(label_metric_cols, paste0(label_metric_cols, "_percentile"))]
+    map_data@data$metric_score = metric_val
+    colnames(map_data@data)[length(colnames(map_data@data))] = paste0(metric_title, "_score")
+  
+    #get raw data layer for this year
+    raw_data = raw_list[[n]][[2]]
+    
+    #writing the layers to the folder
+    writeOGR(map_data, dsn = folder_name, layer = paste0(metric_title, '_metrics_', substr(big_list[[n]][[1]][1], 1,4)),
+             driver = 'ESRI Shapefile', check_exists = TRUE, overwrite_layer = TRUE)
+    writeOGR(raw_data, dsn = folder_name, layer = paste0("Raw_data_", substr(big_list[[n]][[1]][1], 1,4)),
+             driver = 'ESRI Shapefile', check_exists = TRUE, overwrite_layer = TRUE)
+  }
+    
+  #and the predictive layers
+  if(!is.null(pred_dat)){
+    pred_cols = grep(pred_title, colnames(pred_dat@data), value = TRUE)
+    pred_group_names = paste0(gsub('([^0-9]+)([[:digit:]]+)', 'Predicted_\\2', pred_cols), "_", metric_title)
+    # pred_labels = get_pred_labels(pred_dat, label_metric_cols = pred_cols, quantile_bins)
+    # pred_pals = get_pred_pals(pred_dat, label_metric_cols = pred_cols, quantile_bins, pallete_colors, reverse_pal)
+    
+    
+    
+    for(n in seq_along(pred_cols)){
+      col_name = pred_cols[n]
+      if(!is.na(quantile_bins)){
+        metric_val = get_quantile(pred_dat@data[,col_name], quantile_bins)
+      }else{
+        metric_val = pred_dat@data[,col_name]
+      }
+      pred_map = pred_dat
+      pred_map@data = pred_dat@data[,which(colnames(pred_dat@data) %in% c("GEOID", 'neib_name', col_name))]
+      colnames(pred_map@data)[colnames(pred_map@data) == col_name] = paste0(pred_group_names[n], "_raw_metric")
+      pred_map@data$metric_score = metric_val
+      colnames(pred_map@data)[length(colnames(pred_map@data))] = paste0(pred_group_names[n], "_metric")
+      writeOGR(pred_map, dsn = folder_name, layer = pred_group_names[n], driver = 'ESRI Shapefile', 
+               check_exists = TRUE, overwrite_layer = TRUE)
+    }
+  }
+  #saving all of the auxillary shape files
+  tryCatch(writeOGR(hotspot_15, dsn = folder_name, layer = "Hotspot_2015", driver = "ESRI Shapefile",
+                    check_exists = TRUE, overwrite_layer = TRUE), 
+           error = function(e) print("No 2015 hotspot layer found"))
+  tryCatch(writeOGR(hotspot_17, dsn = folder_name, layer = "Hotspot_2017", driver = "ESRI Shapefile",
+                    check_exists = TRUE, overwrite_layer = TRUE), 
+           error = function(e) print("No 2017 hotspot layer found"))
+  tryCatch(writeOGR(school_points, dsn = folder_name, layer = "School_sites", driver = "ESRI Shapefile",
+                    check_exists = TRUE, overwrite_layer = TRUE), 
+           error = function(e) print("No school sites layer found"))
+  tryCatch(writeOGR(school_bounds, dsn = folder_name, layer = "School_boundaries", driver = "ESRI Shapefile",
+                    check_exists = TRUE, overwrite_layer = TRUE), 
+           error = function(e) print("No school boundaries layer found"))
+  tryCatch(writeOGR(cd_bounds, dsn = folder_name, layer = "Council_districs", driver = "ESRI Shapefile",
+                    check_exists = TRUE, overwrite_layer = TRUE), 
+           error = function(e) print("No Council districs layer found"))
+  
+  return(NULL)
+  
+}
+
+
+############ Saving gang presence arcgis layers #########
+
+map = map
+big_list = big_list
+metric_title = all_metrics[[1]][[1]]
+label_metric_cols = gang_presence_cols
+pred_dat = pred_dat
+pred_title = 'gp_sub'
+hotspot_15 = hotspot_15
+hotspot_17 = hotspot_17
+school_points = school_points
+school_bounds = school_bounds
+quantile_bins = QUANTILE_BINS
+cd_bounds = cd_bounds
+folder_name = "gang_presence_layers"
+
+save_map(big_list, metric_title, label_metric_cols, pred_dat, pred_title, 
+         hotspot_15, hotspot_17, school_points, school_bounds, quantile_bins, cd_bounds, folder_name)
+
+############ Saving vocational training arcgis layers #########
+
+map = map
+big_list = big_list
+metric_title = all_metrics[[2]][[1]]
+label_metric_cols = vocational_cols
+pred_dat = pred_dat
+pred_title = 'vocational'
+hotspot_15 = hotspot_15
+hotspot_17 = hotspot_17
+school_points = school_points
+school_bounds = school_bounds
+quantile_bins = QUANTILE_BINS
+cd_bounds = cd_bounds
+folder_name = "vocational_training_layers"
+
+save_map(big_list, metric_title, label_metric_cols, pred_dat, pred_title, 
+         hotspot_15, hotspot_17, school_points, school_bounds, quantile_bins, cd_bounds, folder_name)
+
+############ Saving parent awareness arcgis layers #########
+
+map = map
+big_list = big_list
+metric_title = all_metrics[[3]][[1]]
+label_metric_cols = parent_cols
+pred_dat = pred_dat
+pred_title = 'parent'
+hotspot_15 = hotspot_15
+hotspot_17 = hotspot_17
+school_points = school_points
+school_bounds = school_bounds
+quantile_bins = QUANTILE_BINS
+cd_bounds = cd_bounds
+folder_name = "parent_awareness_layers"
+
+save_map(big_list, metric_title, label_metric_cols, pred_dat, pred_title, 
+         hotspot_15, hotspot_17, school_points, school_bounds, quantile_bins, cd_bounds, folder_name)
+
+
 
 ######### DONE #########
 
