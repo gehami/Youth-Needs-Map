@@ -115,7 +115,8 @@ gp_sub_cols = gang_presence_cols
 ##
 TILE_OPACITY = .7 #opacity of the fill colors (color showing risk level) on the map
 QUANTILE_BINS = 10 #number of quantiles for need. Can be set to NA to see raw need percentages.
-pallete_colors = 'RdYlGn' #color pallette. Google 'Leaflet color pallettes" and "viridis color pallettes" to see what is available
+# pallete_colors = 'RdYlGn' #color pallette. Google 'Leaflet color pallettes" and "viridis color pallettes" to see what is available
+pallete_colors = 'colorspace::terrain_hcl' #color pallette. Google 'Leaflet color pallettes" and "viridis color pallettes" to see what is available
 reverse_pal = TRUE #reverses order of colors in pallette
 cd_colors = '#1A1423' #color for council district outline
 hotspot_15_colors = '#FA7921'  #color for 2015 hotspot outline
