@@ -116,7 +116,7 @@ gp_sub_cols = gang_presence_cols
 TILE_OPACITY = .7 #opacity of the fill colors (color showing risk level) on the map
 QUANTILE_BINS = 10 #number of quantiles for need. Can be set to NA to see raw need percentages.
 # pallete_colors = 'RdYlGn' #color pallette. Google 'Leaflet color pallettes" and "viridis color pallettes" to see what is available
-pallete_colors = 'colorspace::terrain_hcl' #color pallette. Google 'Leaflet color pallettes" and "viridis color pallettes" to see what is available
+pallete_colors = 'Greens' #color pallette. Google 'Leaflet color pallettes" and "viridis color pallettes" to see what is available
 reverse_pal = TRUE #reverses order of colors in pallette
 cd_colors = '#1A1423' #color for council district outline
 hotspot_15_colors = '#FA7921'  #color for 2015 hotspot outline
@@ -225,7 +225,8 @@ install_and_load('dplyr')
 
 
 #pallettes
-get_pals = function(big_list, label_metric_cols, quantile_bins = NA, pallete_colors = 'plasma', reverse_pal = FALSE){
+#get_pals = function(big_list, label_metric_cols, quantile_bins = NA, pallete_colors = 'plasma', reverse_pal = FALSE){
+get_pals = function(big_list, label_metric_cols, quantile_bins = NA, pallete_colors = 'brewer yellow-green-blue', reverse_pal = FALSE){
   require(viridis)
   pals = list()
   if(is.na(quantile_bins) | quantile_bins < 2){
@@ -241,7 +242,8 @@ get_pals = function(big_list, label_metric_cols, quantile_bins = NA, pallete_col
   return(pals)
 }
 
-get_pred_pals = function(pred_dat, label_metric_cols, quantile_bins = NA, pallete_colors = 'plasma', reverse_pal = FALSE){
+#get_pred_pals = function(pred_dat, label_metric_cols, quantile_bins = NA, pallete_colors = 'plasma', reverse_pal = FALSE){ 
+get_pred_pals = function(pred_dat, label_metric_cols, quantile_bins = NA, pallete_colors = 'brewer yellow-green-blue', reverse_pal = FALSE){
   require(viridis)
   pals = list()
   if(is.numeric(label_metric_cols[1])){label_metric_cols = colnames(pred_dat@data)[label_metric_cols]}
@@ -393,7 +395,8 @@ require(leaflet)
 
 make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, hotspot_17, school_points, cd_bounds, school_icons, html_legend_school_icons,
                     pred_dat = NULL, pred_title = NULL, tile_opacity = 0.7, quantile_bins = NA,
-                    pallete_colors = 'plasma', reverse_pal = FALSE, 
+                    #pallete_colors = 'plasma', reverse_pal = FALSE, 
+                    pallete_colors = 'brewer yellow-green-blue', reverse_pal = FALSE, 
                     cd_colors = '#26A54E', hotspot_15_colors = '#B600FF', hotspot_17_colors = '#000000', brightness_perc = 0.05,
                     raw_list = NA, raw_data_cols = NA, raw_data_col_names = NA, council_centroid = NA, hotspot_15_centroid = NA,
                     hotspot_17_centroid = NA, label_transparency = 0.5, cad_colors = "#03F",
