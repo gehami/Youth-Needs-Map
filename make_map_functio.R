@@ -18,7 +18,8 @@ require(leaflet)
 
 make_map = function(map, big_list, metric_title, label_metric_cols, hotspot_15, hotspot_17, school_points, cd_bounds, school_icons, html_legend_school_icons,
                     pred_dat = NULL, pred_title = NULL, tile_opacity = 0.7, quantile_bins = NA,
-                    pallete_colors = 'plasma', reverse_pal = FALSE, 
+                    # pallete_colors = 'plasma', reverse_pal = FALSE, 
+                    pallete_colors = 'brewer yellow-green-blue', reverse_pal = FALSE, 
                     cd_colors = '#26A54E', hotspot_15_colors = '#B600FF', hotspot_17_colors = '#000000', brightness_perc = 0.05,
                     raw_list = NA, raw_data_cols = NA, raw_data_col_names = NA, council_centroid = NA, hotspot_15_centroid = NA,
                     hotspot_17_centroid = NA, label_transparency = 0.5, cad_colors = "#03F",
