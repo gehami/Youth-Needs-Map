@@ -74,7 +74,7 @@ get_quantile = function(vec, quantile_bins, ret_factor = TRUE, ret_100_ile = FAL
 min_max_scale = function(x,...){return((x- min(x, ...)) /(max(x,...)-min(x,...)))}
 
 ###### Opening Data ########
-
+setwd('C:\\Users\\alber\\OneDrive\\Documents\\GitHub\\Youth-Needs-Map')
 
 big_list = readRDS('RDS files/yearly_need_metric_spdf.rds') #list of each spatialpolygonsdataframe for each year of need metrics. Each element is [[1]] == year range, [[2]] == SpatialPolygonsDataFrame
 full_list = readRDS('RDS files/yearly_raw_metric_spdf.rds') #list of raw metrics for each year. Each element is [[1]] == year range, [[2]] == SpatialPolygonsDataFrame
@@ -158,12 +158,13 @@ install_and_load('lwgeom')
 install_and_load('doBy')
 
 add_metrics_to_hotspots = function(big_list_spdf, hotspot_spdf, gang_presence_cols, vocational_cols, parent_cols){
+  sf::sf_use_s2(FALSE)
   test = big_list_spdf %>% st_as_sf()
   hs = st_as_sf(hotspot_spdf)
   install_and_load('sf')
   install_and_load('tidyverse')
   install_and_load('lwgeom')
-  int = (st_intersection(test, st_make_valid(hs))) #%>% select(GEOID, hot_spot, hotspot_name, geometry)
+  int = (st_intersection(st_make_valid(test), st_make_valid(hs))) #%>% select(GEOID, hot_spot, hotspot_name, geometry)
   int$area = as.numeric(st_area(int$geometry))
   int = int[order(int$hot_spot),]
   int_data = int
@@ -180,6 +181,10 @@ add_metrics_to_hotspots = function(big_list_spdf, hotspot_spdf, gang_presence_co
   hotspot_spdf@data = merge(hotspot_spdf@data, test_hs, by = 'hot_spot')
   return(hotspot_spdf)
 }
+
+# big_list_spdf = big_list[[grep('2017',unlist(lapply(lapply(lapply(big_list, `[[`, 1), as.character), '[[',1)))[1]]][[2]] #this is the 2017 year in the big_list
+# hotspot_spdf = hotspot_17_raw
+
 
 
 hotspot_17_metrics = add_metrics_to_hotspots(big_list[[grep('2017',unlist(lapply(lapply(lapply(big_list, `[[`, 1), as.character), '[[',1)))[1]]][[2]], #this is the 2017 year in the big_list
@@ -619,6 +624,7 @@ school_points = sp::SpatialPointsDataFrame(coords = data.frame(lon = school_boun
 ######### Calculating Centroid for council districts - council_centroid ############
 library(rgeos)
 library(sp)
+install_and_load("rgdal")
 council_centroid = rgeos::gCentroid(cd_bounds, byid = TRUE) %>% sp::SpatialPointsDataFrame(data = cd_bounds@data) %>%
   sp::spTransform(cd_bounds@proj4string)
 
@@ -629,6 +635,7 @@ saveRDS(council_centroid, file = 'Final_app_deliverable/council_centroid.rds')
 ######## Calculating hotspot centroids and names - hotspot_17_centroid and hotspot_15_centroid ###########
 require(rgeos)
 require(sp)
+install_and_load("rgdal")
 hotspot_17_centroid = gCentroid(hotspot_17, byid = TRUE) %>% SpatialPointsDataFrame(data = data.frame(name = hotspot_17$hotspot_name)) %>%
   spTransform(hotspot_17@proj4string)
 
@@ -846,6 +853,10 @@ save_map = function(big_list, metric_title, label_metric_cols, pred_dat = NULL, 
              driver = 'ESRI Shapefile', check_exists = TRUE, overwrite_layer = TRUE)
     writeOGR(raw_data, dsn = folder_name, layer = paste0("Raw_data_", substr(big_list[[n]][[1]][1], 1,4)),
              driver = 'ESRI Shapefile', check_exists = TRUE, overwrite_layer = TRUE)
+    #providing csv's of the data so people can actually view it as well
+    write.csv(map_data@data, file = paste0(folder_name,"/", metric_title, '_metrics_', substr(big_list[[n]][[1]][1], 1,4), ".csv"))
+    write.csv(raw_data@data, file = paste0(folder_name,"/Raw_data_", metric_title, "_", substr(big_list[[n]][[1]][1], 1,4), ".csv"))
+    
   }
     
   #and the predictive layers
@@ -871,6 +882,8 @@ save_map = function(big_list, metric_title, label_metric_cols, pred_dat = NULL, 
       colnames(pred_map@data)[length(colnames(pred_map@data))] = paste0(pred_group_names[n], "_metric")
       writeOGR(pred_map, dsn = folder_name, layer = pred_group_names[n], driver = 'ESRI Shapefile', 
                check_exists = TRUE, overwrite_layer = TRUE)
+      #providing csv's of the data so people can actually view it as well
+      write.csv(pred_map@data, file = paste0(folder_name,"/", pred_group_names[n], "_metric.csv"))
     }
   }
   #saving all of the auxillary shape files
